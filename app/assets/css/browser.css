@@ -1,0 +1,32 @@
+* ::selection {
+    color: hsl(240, 15%, 99%) !important;
+    background-color: var(--ui-primary) !important;
+}
+
+*:not(.scrollbar) {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+*:not(.scrollbar)::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-border-accented) transparent;
+}
+
+.scrollbar::-webkit-scrollbar {
+    width: 4px;
+    background: transparent;
+}
+
+.scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollbar::-webkit-scrollbar-thumb {
+    background: var(--ui-border-accented);
+    border-radius: 2px;
+}

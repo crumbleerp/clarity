@@ -1,0 +1,87 @@
+@theme {
+    --color-white: hsl(240, 15%, 99%);
+    --font-unbounded: "Unbounded", system-ui;
+    --font-google-sans: "Google Sans", system-ui;
+    --font-google-sans-code: "Google Sans Code", system-ui;
+    --text-xs: .7rem;
+    --text-sm: .875rem;
+    --text-base: .9rem;
+}
+
+:root {
+    --ui-secondary: var(--ui-primary);
+
+    --ui-text-toned: var(--ui-secondary);
+    --ui-text: hsl(240, 15%, 20%);
+    --ui-text-inverted: hsl(240, 15%, 99%);
+
+    --ui-bg: hsl(240, 15%, 99%);
+    --ui-bg-inverted: hsl(240, 5%, 9%);
+    --ui-bg-muted: hsl(240, 15%, 99%);
+    --ui-text-highlighted: hsl(240, 5%, 9%);
+    --ui-bg-elevated: hsl(240, 15%, 97%);
+    --ui-bg-accented: hsl(240, 15%, 99%);
+    --ui-bg-humble: hsl(240, 15%, 95%);
+
+    --ui-border: hsl(240, 5%, 90%);
+    --ui-border-muted: hsl(240, 5%, 95%);
+    --ui-border-accented: hsl(240, 5%, 90%);
+
+    --theme-logo-symbol: var(--ui-primary);
+    --theme-logo-text: hsl(240, 15%, 20%);
+}
+
+.dark {
+    --ui-secondary: var(--color-violet-300);
+
+    --ui-text-toned: var(--ui-secondary);
+    --ui-text: hsl(240, 15%, 99%);
+    --ui-text-inverted: hsl(240, 15%, 20%);
+
+    --ui-bg: hsl(240, 5%, 9%);
+    --ui-bg-inverted: hsl(240, 15%, 99%);
+    --ui-bg-muted: hsl(240, 5%, 9%);
+    --ui-text-highlighted: hsl(240, 15%, 99%);
+    --ui-bg-elevated: hsl(240, 5%, 11%);
+    --ui-bg-accented: hsl(240, 5%, 13%);
+    --ui-bg-humble: hsl(240, 5%, 6%);
+
+    --ui-border: hsl(240, 5%, 18%);
+    --ui-border-muted: hsl(240, 5%, 18%);
+    --ui-border-accented: hsl(240, 5%, 18%);
+
+    --theme-logo-symbol: hsl(240, 15%, 99%);
+    --theme-logo-text: hsl(240, 15%, 99%);
+}
+
+:root, .dark {
+    --ui-radius: 4px;
+    --ui-container: 1400px;
+    --ui-header-height: 54px;
+    --ui-bottom-bar-height: 54px;
+
+    --ui-viewport-height: calc(100dvh - var(--ui-header-height));
+    --ui-container-height: calc(100dvh - var(--ui-header-height) - calc(var(--spacing) * 24));
+
+    --ui-primary: var(--color-violet-500);
+    --ui-text-muted: hsl(240, 5%, 70%);
+
+    --ui-success: var(--color-emerald-500);
+    --ui-info: var(--color-cyan-500);
+    --ui-warning: var(--color-orange-500);
+    --ui-error: var(--color-rose-500);
+
+    --ui-neutral: hsl(240, 5%, 70%);
+    --ui-text-dimmed: hsl(240, 5%, 70%);
+}
+
+* {
+    border-color: var(--ui-border);
+    outline-color: var(--ui-border);
+}
+
+body {
+    background: var(--ui-bg) !important;
+    font-family: var(--font-google-sans);
+    font-variant-ligatures: common-ligatures;
+}

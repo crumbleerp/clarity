@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1782503088479,
+      "tag": "0000_elite_bug",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782504097393,
+      "tag": "0001_right_bloodscream",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782511265816,
+      "tag": "0002_sparkling_guardsmen",
+      "breakpoints": true
+    }
+  ]
+}

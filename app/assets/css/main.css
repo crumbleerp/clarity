@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@import "../fonts/index.css";
+@import "./theme.css";
+@import "./shiki.css";
+@import "./browser.css";
+@import "./input.css";

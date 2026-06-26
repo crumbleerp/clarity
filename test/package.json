@@ -1,0 +1,33 @@
+{
+    "name": "sanity",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "sanity dev",
+        "build": "sanity build"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "@elysiajs/static": "^1.4.7",
+        "@sanity/code-input": "^7.0.8",
+        "@sanity/color-input": "^6.0.4",
+        "@sanity/vision": "^5.15.0",
+        "elysia": "^1.4.27",
+        "react": "^19.1",
+        "react-dom": "^19.1",
+        "sanity": "^5.15.0",
+        "sanity-plugin-markdown": "^8.0.5",
+        "sanity-plugin-media": "^4.1.1",
+        "styled-components": "^6.1.18"
+    },
+    "devDependencies": {
+        "@sanity/eslint-config-studio": "^6.0.0",
+        "@types/react": "^19.1",
+        "eslint": "^9.28",
+        "prettier": "^3.5",
+        "typescript": "^5.8",
+        "@types/bun": "latest"
+    }
+}

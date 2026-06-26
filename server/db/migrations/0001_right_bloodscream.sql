@@ -1,0 +1,1 @@
+ALTER TABLE "jobs" ADD COLUMN "logs" text DEFAULT '[]' NOT NULL;
