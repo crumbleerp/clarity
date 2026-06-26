@@ -300,12 +300,7 @@ onMounted(() => {
             </div>
 
             <div class="relative">
-              <UCard
-                variant="outline"
-                :class="runningJobs.length > 0 ? 'opacity-60 pointer-events-none' : ''"
-              >
-                <SchemaImporter />
-              </UCard>
+              <SchemaImporter />
             </div>
           </section>
           <!-- Users -->
