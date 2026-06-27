@@ -1,7 +1,29 @@
+export type ClarityFieldType
+  = | 'string'
+    | 'text'
+    | 'markdown'
+    | 'html'
+    | 'number'
+    | 'boolean'
+    | 'color'
+    | 'date'
+    | 'datetime'
+    | 'url'
+    | 'email'
+    | 'slug'
+    | 'reference'
+    | 'image'
+    | 'file'
+    | 'object'
+    | 'document'
+    | 'array'
+
+export type ClarityTypeType = 'document' | 'object'
+
 export interface FieldDefinition {
   name: string
   title?: string
-  type: string
+  type: ClarityFieldType
   description?: string
   options?: Record<string, unknown>
   fields?: FieldDefinition[]
@@ -19,7 +41,7 @@ export interface ReferenceType {
 export interface TypeDefinition {
   name: string
   title?: string
-  type: string
+  type: ClarityTypeType
   description?: string
   fields?: FieldDefinition[]
   options?: Record<string, unknown>
@@ -45,7 +67,7 @@ export function defineType<T extends TypeDefinition>(def: T): T {
 export interface I18nFieldInput {
   name: string
   title?: string
-  type: string
+  type: ClarityFieldType
   description?: string
   options?: Record<string, unknown>
   validation?: unknown
@@ -54,7 +76,7 @@ export interface I18nFieldInput {
 export interface ThemeFieldInput {
   name: string
   title?: string
-  type: string
+  type: ClarityFieldType
   description?: string
   options?: Record<string, unknown>
   validation?: unknown

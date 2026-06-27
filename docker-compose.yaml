@@ -19,7 +19,8 @@ services:
       NUXT_S3_SECRET_KEY: secret-key
       NUXT_S3_PUBLIC_URL: https://cdn.example.com
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   postgres:
@@ -31,6 +32,11 @@ services:
       POSTGRES_USER: clarity
       POSTGRES_PASSWORD: clarity
       POSTGRES_DB: clarity
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clarity -d clarity"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
 volumes:

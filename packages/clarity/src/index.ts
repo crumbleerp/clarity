@@ -11,7 +11,9 @@ export {
   toClaritySchema
 } from './schema.js'
 export type {
+  ClarityFieldType,
   ClaritySchema,
+  ClarityTypeType,
   FieldDefinition,
   I18nFieldInput,
   ReferenceType,

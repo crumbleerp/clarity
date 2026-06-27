@@ -13,7 +13,11 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN NODE_OPTIONS="--max-old-space-size=12000" pnpm build
+RUN pnpm build
+
+RUN mkdir -p /app/migrate-deps \
+ && cp -rL /app/node_modules/postgres /app/migrate-deps/postgres \
+ && cp -rL /app/node_modules/drizzle-orm /app/migrate-deps/drizzle-orm
 
 FROM node:22-alpine
 
@@ -25,7 +29,12 @@ ENV PORT=3000
 USER node
 
 COPY --from=build --chown=node:node /app/.output /app/.output
+COPY --from=build --chown=node:node /app/migrate-deps /app/node_modules
+COPY --from=build --chown=node:node /app/server/db/migrations /app/migrations
+COPY --chown=node:node scripts/migrate.mjs /app/migrate.mjs
+COPY --chown=node:node entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 3000
 
-CMD ["node", "/app/.output/server/index.mjs"]
+ENTRYPOINT ["/app/entrypoint.sh"]
