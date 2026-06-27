@@ -8,6 +8,7 @@
     "declaration": true,
     "outDir": "dist",
     "rootDir": "src",
+    "types": ["nuxt"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noUnusedLocals": true,

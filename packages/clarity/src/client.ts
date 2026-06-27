@@ -61,6 +61,38 @@ export class Client {
     })
   }
 
+  syncSchema(): Promise<unknown> {
+    const { endpoint, dataset, token } = this.config
+    const datasetName = dataset || 'production'
+    if (!endpoint) throw new Error('No Clarity endpoint provided')
+    if (!this.schema.length) throw new Error('No schema provided')
+
+    const url = new URL(`${endpoint.replace(/\/$/, '')}/api/schemas`)
+    url.searchParams.set('dataset', datasetName)
+
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    const fetchFn = this.config.fetch || globalThis.fetch
+
+    return fetchFn(url.toString(), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(this.schema)
+    }).then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`Clarity syncSchema error ${res.status}: ${text}`)
+      }
+      return res.json() as unknown
+    })
+  }
+
   private getQueryUrl(): string {
     const { endpoint, dataset, version } = this.config
     const datasetName = dataset || 'production'
