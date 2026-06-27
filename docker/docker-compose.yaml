@@ -6,7 +6,6 @@ services:
       - "3000:3000"
     environment:
       NUXT_DATABASE_URL: postgresql://clarity:clarity@postgres:5432/clarity
-      NUXT_DATASET: production
       NUXT_PUBLIC_DATASET: production
       NUXT_ROOT_USERNAME: admin
       NUXT_ROOT_PASSWORD: admin

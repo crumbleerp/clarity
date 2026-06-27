@@ -42,16 +42,17 @@ Copy `docker-compose.yaml` to your server and adjust the values:
 services:
   app:
     image: crumbleerp/clarity:latest
+    container_name: clarity-app
     ports:
       - "3000:3000"
     environment:
       NUXT_DATABASE_URL: postgresql://clarity:clarity@postgres:5432/clarity
-      NUXT_ROOT_USERNAME: changeme
-      NUXT_ROOT_PASSWORD: changeme
-      NUXT_SESSION_SECRET: your-random-secret-32chars  # ← any random string, min 32 chars
-      NUXT_PUBLIC_API_BASE_URL: "https://cms.example.com"  # ← your public URL
-      NUXT_DATASET: production                        # ← default dataset name
-      NUXT_S3_ENDPOINT: https://s3.example.com         # ← S3 is required to run Clarity
+      NUXT_PUBLIC_DATASET: production
+      NUXT_ROOT_USERNAME: admin
+      NUXT_ROOT_PASSWORD: admin
+      NUXT_SESSION_SECRET: some-random-secret-at-least-32-chars-long
+      NUXT_PUBLIC_API_BASE_URL: "https://example.com"
+      NUXT_S3_ENDPOINT: https://s3.example.com
       NUXT_S3_REGION: us-east-1
       NUXT_S3_BUCKET: clarity-bucket
       NUXT_S3_ACCESS_KEY: access-key
@@ -64,11 +65,12 @@ services:
 
   postgres:
     image: postgres:17-alpine
+    container_name: clarity-postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: clarity
-      POSTGRES_PASSWORD: clarity   # ← match DATABASE_URL above
+      POSTGRES_PASSWORD: clarity
       POSTGRES_DB: clarity
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U clarity -d clarity"]

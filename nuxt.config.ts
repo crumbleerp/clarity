@@ -18,7 +18,6 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     databaseUrl: process.env.NUXT_DATABASE_URL || process.env.DATABASE_URL || '',
-    dataset: process.env.NUXT_DATASET || process.env.DATASET || '',
     rootUsername: process.env.NUXT_ROOT_USERNAME || process.env.ROOT_USERNAME || 'admin',
     rootPassword: process.env.NUXT_ROOT_PASSWORD || process.env.ROOT_PASSWORD || 'admin',
     sessionSecret: process.env.NUXT_SESSION_SECRET || process.env.SESSION_SECRET || 'some-random-secret-at-least-32-chars-long',
