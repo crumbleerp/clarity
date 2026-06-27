@@ -77,6 +77,8 @@ async function deleteAsset() {
     toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
   }
 }
+
+useHead({ title: 'Media' })
 </script>
 
 <template>

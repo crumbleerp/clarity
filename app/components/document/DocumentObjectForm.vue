@@ -22,7 +22,7 @@ function updateField(name: string, value: unknown) {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-2">
     <SchemaFormField
       v-for="field in fields"
       :key="field.name"

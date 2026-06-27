@@ -7,7 +7,8 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const dataset = (query.dataset as string) || 'production'
   const type = query.type as string | undefined
-  const limit = Math.min(Number(query.limit) || 50, 100)
+  const requestedLimit = Number(query.limit)
+  const limit = Number.isNaN(requestedLimit) || requestedLimit <= 0 ? 1000000 : requestedLimit
   const offset = Number(query.offset) || 0
 
   const db = useDb()
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
   return {
     documents: rows.map(mergeDocument),
     total: totalRows[0]?.count || 0,
-    limit,
+    limit: query.limit ? limit : null,
     offset
   }
 })

@@ -16,6 +16,26 @@ import { uploadToS3 } from '../utils/s3'
 import { updateJob, addJobLog } from './jobs'
 import { invalidateCache } from './cache'
 
+const ASSET_CONCURRENCY = 10
+
+async function runWithConcurrency(tasks: Array<() => Promise<void>>, concurrency: number): Promise<void> {
+  let index = 0
+
+  async function worker() {
+    while (index < tasks.length) {
+      const taskIndex = index++
+      try {
+        await tasks[taskIndex]!()
+      } catch {
+        // individual task handles its own errors
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker())
+  await Promise.all(workers)
+}
+
 export interface ImportConfig {
   projectId: string
   dataset: string
@@ -48,9 +68,7 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
     const assetUrlMap = new Map<string, string>()
     const assetUploadErrors: string[] = []
 
-    let assetIndex = 0
-    for (const asset of assetDocs) {
-      assetIndex++
+    const assetTasks = assetDocs.map((asset, idx) => async () => {
       const id = asset._id as string
       const url = asset.url as string | undefined
       const extension = (asset.extension as string) || ''
@@ -60,7 +78,7 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
       if (!url) {
         assetUploadErrors.push(`Asset ${id} has no url`)
         await addJobLog(jobId, `Asset ${id}: missing url, skipping`)
-        continue
+        return
       }
 
       try {
@@ -69,13 +87,15 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
         const localUrl = await uploadToS3(key, buffer, mimeType)
         assetUrlMap.set(id, localUrl)
         assetUrlMap.set(assetId, localUrl)
-        await addJobLog(jobId, `Uploaded asset ${assetIndex}/${assetDocs.length}: ${id} -> ${localUrl}`)
+        await addJobLog(jobId, `Uploaded asset ${idx + 1}/${assetDocs.length}: ${id} -> ${localUrl}`)
       } catch (e: unknown) {
         const msg = `Asset ${id}: ${(e as Error).message}`
         assetUploadErrors.push(msg)
         await addJobLog(jobId, msg)
       }
-    }
+    })
+
+    await runWithConcurrency(assetTasks, ASSET_CONCURRENCY)
 
     await addJobLog(jobId, `Assets uploaded: ${assetUrlMap.size / 2}, errors: ${assetUploadErrors.length}`)
 
@@ -123,11 +143,28 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
       return typeof t === 'string' && !t.startsWith('_') && !t.startsWith('sanity.') && !t.startsWith('system.')
     })
 
+    const typeCounts = filteredDocs.reduce<Record<string, number>>((acc, d) => {
+      const t = d._type as string
+      acc[t] = (acc[t] || 0) + 1
+      return acc
+    }, {})
+    await addJobLog(jobId, `Document counts: ${Object.entries(typeCounts).map(([t, c]) => `${t}=${c}`).join(', ')}`)
+
+    const skippedDocs = docs.filter((d) => {
+      const t = d._type
+      return typeof t === 'string' && (t.startsWith('_') || t.startsWith('sanity.') || t.startsWith('system.'))
+    })
+    if (skippedDocs.length > 0) {
+      const skippedTypes = [...new Set(skippedDocs.map(d => d._type as string))]
+      await addJobLog(jobId, `Skipped ${skippedDocs.length} system docs: ${skippedTypes.join(', ')}`)
+    }
+
     const schemaDoc = docs.find(d => d._id === '_.schemas.default' || d._type === 'system.schema')
     const inferredSchemas = schemaDoc
       ? (extractSchemasFromDocument(schemaDoc) || inferSchemas(filteredDocs))
       : inferSchemas(filteredDocs)
 
+    await addJobLog(jobId, `Using ${schemaDoc ? 'exported schema' : 'inferred schemas'}`)
     await addJobLog(jobId, `Inferred ${inferredSchemas.length} schemas: ${inferredSchemas.map(s => s.name).join(', ')}`)
 
     // Upsert schemas

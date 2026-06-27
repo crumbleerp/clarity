@@ -10,11 +10,16 @@ const emit = defineEmits<{
   'update:modelValue': [value: { _type: string, _ref: string }]
 }>()
 
+const currentDataset = useCurrentDataset()
+const activeDataset = computed(() => props.dataset || currentDataset.value)
+
 const refTypes = computed(() => props.to?.map(t => t.type) || [])
 
-const { data: allDocs } = useFetch('/api/documents', {
-  query: computed(() => ({ limit: 1000 }))
+const { data: allDocs, refresh } = useFetch('/api/documents', {
+  query: computed(() => ({ dataset: activeDataset.value }))
 })
+
+watch(activeDataset, () => refresh())
 
 function previewTitle(doc: Record<string, unknown>) {
   const candidates = ['title', 'name', 'label', 'id', 'headline', 'value']

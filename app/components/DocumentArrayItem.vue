@@ -5,6 +5,7 @@ const props = defineProps<{
   field: FieldDef
   modelValue: unknown
   dataset?: string
+  hideLabel?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -13,7 +14,16 @@ const emit = defineEmits<{
 
 const open = ref(false)
 
-const isObject = computed(() => props.field.type === 'object' && (props.field.fields?.length ?? 0) > 0)
+const shouldHideLabel = computed(() =>
+  props.field.name === 'unknown'
+  || props.field.title === 'Unknown'
+  || props.field.title === ''
+)
+
+const isObject = computed(() =>
+  props.field.type === 'document'
+  || (props.field.type === 'object' && (props.field.fields?.length ?? 0) > 0)
+)
 
 const item = computed({
   get: () => (props.modelValue || {}) as Record<string, unknown>,
@@ -75,6 +85,7 @@ function previewSubtitle(): string {
       :field="field"
       :model-value="modelValue"
       :dataset="dataset"
+      :hide-label="shouldHideLabel"
       @update:model-value="v => emit('update:modelValue', v)"
     />
   </div>
@@ -88,7 +99,7 @@ function previewSubtitle(): string {
   >
     <button
       type="button"
-      class="w-full flex items-center gap-3 p-3 rounded-lg border border-default bg-elevated/25 hover:bg-elevated/50 transition-colors text-left"
+      class="w-full flex items-center gap-3 p-2 text-left hover:bg-elevated/50 transition-colors rounded-md"
     >
       <UIcon
         name="i-lucide-file-text"

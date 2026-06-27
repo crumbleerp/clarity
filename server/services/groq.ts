@@ -13,7 +13,7 @@ export function validateQueryParameters(
 ) {
   let tree
   try {
-    tree = parse(queryString)
+    tree = parse(queryString, { params })
   } catch {
     return
   }
@@ -61,7 +61,7 @@ export async function executeQuery(
 
   let tree
   try {
-    tree = parse(queryString)
+    tree = parse(queryString, { params })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new GroqQueryError(message)

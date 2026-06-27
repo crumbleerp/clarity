@@ -118,14 +118,17 @@ onMounted(() => {
     if (el) observer.observe(el)
   }
 })
+
+useHead({ title: 'Settings' })
 </script>
 
 <template>
   <div class="min-h-[calc(100vh-64px)] overflow-y-auto">
     <div class="max-w-6xl mx-auto px-6 py-10">
       <div class="grid grid-cols-12 gap-8">
+        <div class="col-span-3" />
         <!-- Sidebar -->
-        <aside class="col-span-3">
+        <aside class="fixed w-60 max-lg:hidden">
           <div class="sticky top-10">
             <h1 class="text-xl font-bold mb-6 px-3">
               Settings
@@ -133,9 +136,9 @@ onMounted(() => {
             <nav class="flex flex-col gap-1">
               <UButton
                 v-for="section in sections"
+                :key="section.id"
                 :variant="activeSection === section.id ? 'subtle' : 'ghost'"
                 :color="activeSection === section.id ? 'secondary' : 'neutral'"
-                :key="section.id"
                 class="text-left px-3 py-2 rounded-lg text-sm transition-colors"
                 @click="scrollTo(section.id)"
               >
@@ -146,7 +149,7 @@ onMounted(() => {
         </aside>
 
         <!-- Content -->
-        <main class="col-span-9 space-y-16">
+        <main class="col-span-9 max-lg:col-span-12 space-y-16">
           <!-- Import -->
           <section
             id="import"

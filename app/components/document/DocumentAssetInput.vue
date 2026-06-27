@@ -94,7 +94,8 @@ async function createAssetDocument(file: File, url: string) {
   }
   const result = await $fetch('/api/documents', {
     method: 'POST',
-    body
+    body,
+    query: { dataset: props.dataset || 'production' }
   }) as { _id: string }
   return result._id
 }
@@ -185,25 +186,25 @@ const actionItems = computed(() => [
   [{
     label: 'Upload',
     icon: 'i-lucide-upload',
-    click: openFilePicker
+    onSelect: openFilePicker
   }, {
     label: 'Media',
     icon: 'i-lucide-image',
-    click: () => selectOpen.value = true
+    onSelect: () => selectOpen.value = true
   }],
   [{
     label: 'Download',
     icon: 'i-lucide-download',
-    click: downloadAsset
+    onSelect: downloadAsset
   }, {
     label: 'Copy URL',
     icon: 'i-lucide-link',
-    click: copyUrl
+    onSelect: copyUrl
   }],
   [{
     label: 'Clear field',
     icon: 'i-lucide-x',
-    click: clearAsset
+    onSelect: clearAsset
   }]
 ])
 </script>

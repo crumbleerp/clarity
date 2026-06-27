@@ -15,6 +15,7 @@ const props = defineProps<{
   field: FieldDef
   modelValue: unknown
   dataset?: string
+  hideLabel?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +26,14 @@ const value = computed({
   get: () => props.modelValue,
   set: v => emit('update:modelValue', v)
 })
+
+const UFormFieldComponent = resolveComponent('UFormField')
+
+const wrapper = computed(() => props.hideLabel ? 'div' : UFormFieldComponent)
+const wrapperProps = computed(() => props.hideLabel
+  ? {}
+  : { label: props.field.title || props.field.name, name: props.field.name, description: props.field.description }
+)
 
 function typedValue<T>() {
   return computed({
@@ -89,23 +98,23 @@ function updateArrayItem(index: number, v: unknown) {
 
 <template>
   <div class="schema-field">
-    <UFormField
+    <component
+      :is="wrapper"
       v-if="field.type === 'boolean'"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
+      v-bind="wrapperProps"
+      class="w-full"
     >
       <USwitch
         v-model="valueBoolean"
         :name="field.name"
       />
-    </UFormField>
+    </component>
 
-    <UFormField
+    <component
+      :is="wrapper"
       v-else-if="field.type === 'text'"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
+      v-bind="wrapperProps"
+      class="w-full"
     >
       <UTextarea
         v-model="valueString"
@@ -113,26 +122,28 @@ function updateArrayItem(index: number, v: unknown) {
         :rows="4"
         class="font-mono text-sm w-full"
       />
-    </UFormField>
+    </component>
 
-    <UFormField
+    <component
+      :is="wrapper"
       v-else-if="['markdown', 'html'].includes(field.type)"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
+      v-bind="wrapperProps"
+      class="w-full"
     >
-      <RichEditor
-        v-model="valueString"
-        :type="editorType"
-        class="w-full"
-      />
-    </UFormField>
+      <div class="w-full h-100 border overflow-hidden">
+        <EditorRichEditor
+          v-model="valueString"
+          :type="editorType"
+          class="w-full h-full"
+        />
+      </div>
+    </component>
 
-    <UFormField
+    <component
+      :is="wrapper"
       v-else-if="field.type === 'number'"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
+      v-bind="wrapperProps"
+      class="w-full"
     >
       <UInput
         v-model="valueNumber"
@@ -140,13 +151,13 @@ function updateArrayItem(index: number, v: unknown) {
         :name="field.name"
         type="number"
       />
-    </UFormField>
+    </component>
 
-    <UFormField
+    <component
+      :is="wrapper"
       v-else-if="field.type === 'color'"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
+      v-bind="wrapperProps"
+      class="w-full"
     >
       <div class="flex items-center gap-2">
         <UInput
@@ -163,13 +174,13 @@ function updateArrayItem(index: number, v: unknown) {
           placeholder="#000000"
         />
       </div>
-    </UFormField>
+    </component>
 
-    <UFormField
+    <component
+      :is="wrapper"
       v-else-if="field.type === 'reference'"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
+      v-bind="wrapperProps"
+      class="w-full"
     >
       <DocumentReferenceInput
         v-model="valueReference"
@@ -178,14 +189,13 @@ function updateArrayItem(index: number, v: unknown) {
         :dataset="dataset"
         :name="field.name"
       />
-    </UFormField>
+    </component>
 
-    <UFormField
+    <component
+      :is="wrapper"
       v-else-if="field.type === 'image' || field.type === 'file'"
+      v-bind="wrapperProps"
       class="w-full"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
     >
       <DocumentAssetInput
         v-model="valueAsset"
@@ -193,14 +203,13 @@ function updateArrayItem(index: number, v: unknown) {
         :name="field.name"
         :dataset="dataset"
       />
-    </UFormField>
+    </component>
 
-    <UFormField
-      v-else-if="field.type === 'object'"
+    <component
+      :is="wrapper"
+      v-else-if="field.type === 'object' || field.type === 'document'"
+      v-bind="wrapperProps"
       class="w-full"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
     >
       <UCard class="p-4 bg-elevated/25">
         <DocumentObjectForm
@@ -210,20 +219,23 @@ function updateArrayItem(index: number, v: unknown) {
           :dataset="dataset"
         />
       </UCard>
-    </UFormField>
+    </component>
 
-    <UFormField
+    <component
+      :is="wrapper"
       v-else-if="field.type === 'array'"
+      v-bind="wrapperProps"
       class="w-full"
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
     >
-      <div class="space-y-2">
+      <UCard
+        :ui="{ body: 'p-0!' }"
+        class="bg-elevated/25"
+      >
         <div
           v-for="(item, idx) in ensureArray()"
           :key="idx"
-          class="flex items-start gap-2 rounded-lg border border-default bg-elevated/25 p-2"
+          class="flex items-start gap-2 p-2"
+          :class="{ 'border-b border-default': idx < ensureArray().length - 1 }"
         >
           <div class="flex-1 min-w-0">
             <DocumentArrayItem
@@ -241,22 +253,22 @@ function updateArrayItem(index: number, v: unknown) {
             @click="removeArrayItem(idx)"
           />
         </div>
+      </UCard>
 
-        <UButton
-          icon="i-lucide-plus"
-          size="sm"
-          variant="ghost"
-          :label="`Add ${field.title || field.name || 'item'}`"
-          @click="addArrayItem"
-        />
-      </div>
-    </UFormField>
+      <UButton
+        icon="i-lucide-plus"
+        size="sm"
+        variant="ghost"
+        :label="`Add ${field.title || field.name || 'item'}`"
+        @click="addArrayItem"
+      />
+    </component>
 
-    <UFormField
+    <component
+      :is="wrapper"
       v-else
-      :label="field.title || field.name"
-      :name="field.name"
-      :description="field.description"
+      v-bind="wrapperProps"
+      class="w-full"
     >
       <UInput
         v-model="valueString"
@@ -264,6 +276,6 @@ function updateArrayItem(index: number, v: unknown) {
         :name="field.name"
         :type="pickInputType()"
       />
-    </UFormField>
+    </component>
   </div>
 </template>

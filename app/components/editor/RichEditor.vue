@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { gitHubEmojis } from '@tiptap/extension-emoji'
 import type { HTMLAttributes } from 'vue'
-import { ImageUpload, ImageUploadHandlers } from './extensions/upload/RichEditorUploadExtension'
 
 const props = defineProps<{
   lite?: boolean
@@ -39,8 +37,6 @@ const inserts = computed(() => [
   { kind: 'blockquote', label: t('blockquote'), icon: 'i-lucide-quote', tooltip: { text: t('blockquote') } },
   { kind: 'codeBlock', label: t('codeblock'), icon: 'i-lucide-terminal', tooltip: { text: t('codeblock') } },
   { kind: 'horizontalRule', label: t('divider'), icon: 'i-lucide-minus', tooltip: { text: t('divider') } },
-  { kind: 'link', label: t('link'), icon: 'i-lucide-link', tooltip: { text: t('link') } },
-  { kind: 'imageUpload', label: t('image'), icon: 'i-lucide-image', tooltip: { text: t('image') } }
 ])
 
 const bubble = computed(() => props.lite
@@ -62,20 +58,18 @@ const commands = computed(() => [[
   { type: 'label', label: t('insert') },
   ...inserts.value
 ]])
-
-const emojis = gitHubEmojis.filter(emoji => !emoji.name.startsWith('regional_indicator_'))
 </script>
 
 <template>
-  <div class="w-full" :class="props.class">
+  <div class="w-full h-full" :class="props.class">
     <UEditor
       v-model="model"
       :content-type="props.type"
       :placeholder="props.placeholder || t('placeholder')"
-      :extensions="[ImageUpload]"
-      :handlers="{
-        ...ImageUploadHandlers
-      } as any"
+      :ui="{
+        root: 'pt-16 h-full',
+        content: 'overflow-y-scroll scrollbar'
+      }"
       class="w-full relative"
     >
       <template #default="{ editor }">
@@ -92,20 +86,6 @@ const emojis = gitHubEmojis.filter(emoji => !emoji.name.startsWith('regional_ind
           :items="bubble as any"
           layout="bubble"
           :ui="{ group: 'gap-2 p-2', base: 'gap-0 p-0' }"
-        />
-        <UEditorSuggestionMenu
-          v-if="!props.lite"
-          :editor="editor"
-          :items="commands as any"
-        />
-        <UEditorEmojiMenu
-          v-if="!props.lite"
-          :editor="editor"
-          :items="emojis"
-        />
-        <UEditorDragHandle
-          icon="i-lucide-grip-vertical"
-          :editor="editor"
         />
       </template>
     </UEditor>

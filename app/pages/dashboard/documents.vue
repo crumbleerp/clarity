@@ -6,10 +6,18 @@ definePageMeta({ middleware: 'auth' })
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const currentDataset = useCurrentDataset()
 
-const { data: schemas } = await useFetch('/api/schemas')
+const { data: schemas, refresh: refreshSchemas } = await useFetch('/api/schemas', {
+  query: computed(() => ({ dataset: currentDataset.value }))
+})
 const { data: allDocs, refresh: refreshDocs } = await useFetch('/api/documents', {
-  query: { limit: 1000 }
+  query: computed(() => ({ dataset: currentDataset.value }))
+})
+
+watch(currentDataset, () => {
+  refreshSchemas()
+  refreshDocs()
 })
 
 const selectedType = computed<string>({
@@ -79,7 +87,8 @@ async function createDocument(typeName: string) {
   try {
     const result = await $fetch('/api/documents', {
       method: 'POST',
-      body: { _type: typeName }
+      body: { _type: typeName },
+      query: { dataset: currentDataset.value }
     })
     toast.add({ title: 'Document created', color: 'success' })
     await refreshDocs()
@@ -94,7 +103,11 @@ async function saveDocument() {
     const id = selectedId.value
     const payload = showJson.value ? JSON.parse(jsonInput.value) : itemData.value
     if (!id) return
-    await $fetch(`/api/documents/${id}`, { method: 'PUT', body: payload })
+    await $fetch(`/api/documents/${id}`, {
+      method: 'PUT',
+      body: payload,
+      query: { dataset: currentDataset.value }
+    })
     toast.add({ title: 'Document saved', color: 'success' })
     isDirty.value = false
     await refreshDocs()
@@ -104,30 +117,58 @@ async function saveDocument() {
 }
 
 async function deleteDocument(id: string) {
-  await $fetch(`/api/documents/${id}`, { method: 'DELETE' })
+  await $fetch(`/api/documents/${id}`, {
+    method: 'DELETE',
+    query: { dataset: currentDataset.value }
+  })
   toast.add({ title: 'Document deleted', color: 'success' })
   if (selectedId.value === id) selectedId.value = undefined
   await refreshDocs()
 }
+onBeforeUnmount(watchEffect(() => {
+  useHead({ title: `Documents${selectedType.value ? ` | ${selectedType.value}` : ''}` })
+}))
+useHead({ title: `Documents${selectedType.value ? ` | ${selectedType.value}` : ''}` })
+
+const leftSideOpen = ref(false)
 </script>
 
 <template>
   <div class="h-[calc(100vh-64px)] flex">
     <!-- Types pane -->
-    <div class="w-60 border-r border-default flex flex-col bg-elevated/25">
-      <div class="p-3 border-b border-default font-medium text-sm text-muted h-12">
-        Types
+    <div
+      class="w-60 border-r border-default flex flex-col bg-elevated/25"
+      :class="{ 'w-12.5!': !!selectedId && !leftSideOpen }"
+    >
+      <div class="p-3 border-b border-default font-medium text-sm text-muted h-12 flex items-center justify-between">
+        <template v-if="!selectedId || (selectedId && leftSideOpen)">
+          Types
+        </template>
+        <UButton
+          v-if="selectedId"
+          class="-m-1"
+          variant="link"
+          color="neutral"
+          :icon="leftSideOpen ? 'i-lucide-panel-right-open' : 'i-lucide-panel-left-open'"
+          @click="leftSideOpen = !leftSideOpen"
+        />
       </div>
       <div class="flex-1 overflow-y-auto p-2 space-y-1">
         <UButton
           v-for="schema in schemas"
+          :key="schema.id"
+          :icon="schema.title.includes('tag') ? `i-lucide-tag` :`i-lucide-folder`"
           :variant="selectedType === schema.name ? 'subtle' : 'ghost'"
           :color="selectedType === schema.name ? 'secondary' : 'neutral'"
-          :key="schema.id"
           class="w-full"
           @click="selectedType = schema.name"
         >
-          {{ schema.title }}
+          <template
+            v-if="!selectedId || (selectedId && leftSideOpen)"
+            #default
+          >
+            {{ schema.title }}
+          </template>
         </UButton>
       </div>
     </div>
@@ -135,7 +176,9 @@ async function deleteDocument(id: string) {
     <!-- Items pane -->
     <div class="w-80 border-r border-default flex flex-col bg-elevated/50">
       <div class="p-3 border-b border-default flex items-center justify-between h-12">
-        <span class="font-medium text-sm text-muted">Items</span>
+        <span class="font-medium text-sm text-muted">
+          {{ selectedType }} ({{ itemsForType.length }})
+        </span>
         <UButton
           v-if="selectedType"
           icon="i-lucide-plus"
@@ -157,7 +200,7 @@ async function deleteDocument(id: string) {
           :key="doc._id as string"
           class="group flex items-center justify-between px-4 py-3 border-b border-default cursor-pointer hover:bg-elevated"
           :class="selectedId === doc._id ? 'bg-elevated' : ''"
-          @click="selectedId = doc._id as string"
+          @click="selectedId = doc._id as string; leftSideOpen = false"
         >
           <span class="text-sm truncate">{{ previewTitle(doc) }}</span>
           <UButton
@@ -222,6 +265,7 @@ async function deleteDocument(id: string) {
             v-else
             v-model="itemData"
             :fields="schemaFields"
+            :dataset="currentDataset"
             @update:model-value="isDirty = true"
           />
         </div>

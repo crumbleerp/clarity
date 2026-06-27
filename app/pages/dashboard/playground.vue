@@ -19,10 +19,12 @@ interface HistoryItem {
 const STORAGE_KEY = 'clarity-playground-history'
 
 const route = useRoute()
+const router = useRouter()
 const runtimeConfig = useRuntimeConfig()
 const colorMode = useColorMode()
+const currentDataset = useCurrentDataset()
 
-const dataset = ref<string>((route.query.dataset as string) || runtimeConfig.public.dataset || 'production')
+const dataset = ref<string>((route.query.dataset as string) || currentDataset.value || runtimeConfig.public.dataset || 'production')
 const query = ref<string>(`*[_type == "post"] | order(_createdAt desc) {
   _id,
   title,
@@ -33,6 +35,16 @@ const executing = ref(false)
 const result = shallowRef<JsonValue | null>(null)
 const error = ref<string | null>(null)
 const responseTime = ref<number | null>(null)
+
+watch(currentDataset, (value) => {
+  dataset.value = value
+  result.value = null
+  error.value = null
+})
+
+watch(dataset, (value) => {
+  router.replace({ query: { ...route.query, dataset: value !== runtimeConfig.public.dataset ? value : undefined } })
+})
 const isDark = computed(() => colorMode.value === 'dark')
 
 const history = useClarityLocalStorage<HistoryItem[]>(STORAGE_KEY, [])
@@ -159,6 +171,8 @@ function formatDate(iso: string) {
 function clearHistory() {
   history.value = []
 }
+
+useHead({ title: 'Playground' })
 </script>
 
 <template>

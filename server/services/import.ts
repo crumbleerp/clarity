@@ -14,76 +14,163 @@ export interface InferredSchema {
   fields: InferredField[]
 }
 
-function inferFieldType(key: string, value: unknown): InferredField {
-  const base: InferredField = { name: key, title: key, type: 'string' }
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
 
-  if (value === null || value === undefined) {
-    return base
+function isReference(value: unknown): boolean {
+  return isObject(value) && value._type === 'reference' && typeof value._ref === 'string'
+}
+
+function isImageObject(value: unknown): boolean {
+  return isObject(value) && (value._type === 'image' || value._type === 'sanity.imageAsset')
+}
+
+function isFileObject(value: unknown): boolean {
+  return isObject(value) && (value._type === 'file' || value._type === 'sanity.fileAsset')
+}
+
+function isBlockObject(value: unknown): boolean {
+  return isObject(value) && value._type === 'block'
+}
+
+function inferDateType(value: string): 'date' | 'datetime' | null {
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) return 'datetime'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'date'
+  return null
+}
+
+function classifyPrimitive(values: unknown[]): 'string' | 'number' | 'boolean' | 'date' | 'datetime' {
+  const types = new Set<string>()
+  for (const v of values) {
+    if (typeof v === 'number') types.add('number')
+    else if (typeof v === 'boolean') types.add('boolean')
+    else if (typeof v === 'string') {
+      const dt = inferDateType(v)
+      if (dt === 'datetime') types.add('datetime')
+      else if (dt === 'date') types.add('date')
+      else types.add('string')
+    } else {
+      types.add('string')
+    }
   }
 
-  if (typeof value === 'string') {
-    // Try detect date strings
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-      return { ...base, type: 'datetime' }
+  if (types.size > 1) return 'string'
+  if (types.has('number')) return 'number'
+  if (types.has('boolean')) return 'boolean'
+  if (types.has('datetime')) return 'datetime'
+  if (types.has('date')) return 'date'
+  return 'string'
+}
+
+function collectNestedFields(values: Record<string, unknown>[], idToType: Map<string, string>): InferredField[] {
+  const fieldValues = new Map<string, unknown[]>()
+
+  for (const obj of values) {
+    for (const [key, val] of Object.entries(obj)) {
+      if (key.startsWith('_')) continue
+      if (!fieldValues.has(key)) fieldValues.set(key, [])
+      fieldValues.get(key)!.push(val)
     }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return { ...base, type: 'date' }
-    }
-    return { ...base, type: 'string' }
   }
 
-  if (typeof value === 'number') {
-    return { ...base, type: 'number' }
+  return Array.from(fieldValues.entries()).map(([key, vals]) => classifyField(key, vals, idToType))
+}
+
+function classifyReference(name: string, values: Record<string, unknown>[], idToType: Map<string, string>): InferredField {
+  const targets = new Set<string>()
+  for (const obj of values) {
+    const ref = obj._ref
+    if (typeof ref === 'string') {
+      const target = idToType.get(ref)
+      if (target) targets.add(target)
+    }
+  }
+  return {
+    name,
+    title: name,
+    type: 'reference',
+    to: Array.from(targets).map(type => ({ type }))
+  }
+}
+
+function detectSpecialType(values: Record<string, unknown>[]): string | null {
+  const counts = new Map<string, number>()
+  for (const obj of values) {
+    const t = obj._type
+    if (typeof t === 'string') counts.set(t, (counts.get(t) || 0) + 1)
   }
 
-  if (typeof value === 'boolean') {
-    return { ...base, type: 'boolean' }
+  if (counts.size === 0) return null
+
+  const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+  if (sorted.length === 0) return null
+
+  const [type, count] = sorted[0]!
+  if (count === values.length) return type
+  return null
+}
+
+function classifyObject(name: string, values: Record<string, unknown>[], idToType: Map<string, string>): InferredField {
+  const specialType = detectSpecialType(values)
+
+  if (specialType === 'reference' || (specialType === null && values.every(isReference))) {
+    return classifyReference(name, values, idToType)
   }
 
-  if (Array.isArray(value)) {
-    const firstItem = value.find(item => item !== null && item !== undefined)
-    const itemType = firstItem ? inferFieldType('item', firstItem) : { name: 'item', title: 'Item', type: 'string' }
-
-    // Portable text blocks
-    if (firstItem && typeof firstItem === 'object' && (firstItem as Record<string, unknown>)._type === 'block') {
-      return { ...base, type: 'array', of: [{ name: 'block', title: 'Block', type: 'block' }] }
-    }
-
-    return { ...base, type: 'array', of: [itemType] }
+  if (specialType === 'slug') {
+    return { name, title: name, type: 'slug' }
   }
 
-  if (typeof value === 'object' && value !== null) {
-    const obj = value as Record<string, unknown>
-    const objectType = obj._type
-
-    if (objectType === 'reference' && typeof obj._ref === 'string') {
-      return { ...base, type: 'reference', to: [] }
-    }
-
-    if (objectType === 'image') {
-      return { ...base, type: 'image' }
-    }
-
-    if (objectType === 'file') {
-      return { ...base, type: 'file' }
-    }
-
-    if (objectType === 'slug') {
-      return { ...base, type: 'slug' }
-    }
-
-    if (objectType === 'block') {
-      return { ...base, type: 'block' }
-    }
-
-    const nestedFields = Object.entries(obj)
-      .filter(([k]) => !k.startsWith('_'))
-      .map(([k, v]) => inferFieldType(k, v))
-
-    return { ...base, type: 'object', fields: nestedFields }
+  if (specialType === 'block') {
+    return { name, title: name, type: 'block' }
   }
 
-  return base
+  if (specialType === 'image' || specialType === 'sanity.imageAsset' || values.every(isImageObject)) {
+    return { name, title: name, type: 'image' }
+  }
+
+  if (specialType === 'file' || specialType === 'sanity.fileAsset' || values.every(isFileObject)) {
+    return { name, title: name, type: 'file' }
+  }
+
+  const fields = collectNestedFields(values, idToType)
+  return { name, title: name, type: 'object', fields }
+}
+
+function isPortableText(items: unknown[]): boolean {
+  return items.some(v => isBlockObject(v))
+}
+
+function classifyField(name: string, values: unknown[], idToType: Map<string, string>): InferredField {
+  const nonNull = values.filter(v => v !== null && v !== undefined)
+
+  if (nonNull.length === 0) {
+    return { name, title: name, type: 'string' }
+  }
+
+  const hasArray = nonNull.some(Array.isArray)
+  if (hasArray) {
+    const items: unknown[] = []
+    for (const v of nonNull) {
+      if (Array.isArray(v)) items.push(...v.filter(x => x !== null && x !== undefined))
+    }
+
+    if (isPortableText(items)) {
+      return { name, title: name, type: 'array', of: [{ name: 'block', title: 'Block', type: 'block' }] }
+    }
+
+    const itemField = classifyField('item', items, idToType)
+    return { name, title: name, type: 'array', of: [itemField] }
+  }
+
+  const objectValues = nonNull.filter(isObject)
+  if (objectValues.length > 0) {
+    return classifyObject(name, objectValues, idToType)
+  }
+
+  const type = classifyPrimitive(nonNull)
+  return { name, title: name, type }
 }
 
 function normalizeField(field: unknown): InferredField {
@@ -149,7 +236,6 @@ export function extractSchemasFromDocument(doc: Record<string, unknown>): Inferr
     }
   }
 
-  // Fallback: any array field that looks like schemas
   for (const value of Object.values(doc)) {
     if (Array.isArray(value)) {
       const parsed = parseSchemaArray(value)
@@ -161,32 +247,44 @@ export function extractSchemasFromDocument(doc: Record<string, unknown>): Inferr
 }
 
 export function inferSchemas(docs: Record<string, unknown>[]): InferredSchema[] {
-  const schemasByType = new Map<string, Map<string, InferredField>>()
+  const idToType = new Map<string, string>()
+
+  for (const doc of docs) {
+    const id = doc._id
+    const type = doc._type
+    if (typeof id === 'string' && typeof type === 'string') {
+      idToType.set(id, type)
+    }
+  }
+
+  const fieldValuesByType = new Map<string, Map<string, unknown[]>>()
 
   for (const doc of docs) {
     const type = doc._type as string
     if (!type) continue
 
-    if (!schemasByType.has(type)) {
-      schemasByType.set(type, new Map())
+    if (!fieldValuesByType.has(type)) {
+      fieldValuesByType.set(type, new Map())
     }
 
-    const fields = schemasByType.get(type)!
+    const typeFields = fieldValuesByType.get(type)!
 
     for (const [key, value] of Object.entries(doc)) {
       if (key.startsWith('_')) continue
-      if (!fields.has(key)) {
-        fields.set(key, inferFieldType(key, value))
-      }
+      if (!typeFields.has(key)) typeFields.set(key, [])
+      typeFields.get(key)!.push(value)
     }
   }
 
-  return Array.from(schemasByType.entries()).map(([type, fieldsMap]) => ({
-    name: type,
-    title: type.charAt(0).toUpperCase() + type.slice(1),
-    type: 'document' as const,
-    fields: Array.from(fieldsMap.values())
-  }))
+  return Array.from(fieldValuesByType.entries()).map(([type, fieldMap]) => {
+    const fields = Array.from(fieldMap.entries()).map(([key, values]) => classifyField(key, values, idToType))
+    return {
+      name: type,
+      title: type.charAt(0).toUpperCase() + type.slice(1),
+      type: 'document' as const,
+      fields
+    }
+  })
 }
 
 export function mapDocument(doc: Record<string, unknown>): {
@@ -242,8 +340,6 @@ export function transformAssetRefs(
   value: unknown,
   _assetUrlMap: Map<string, string>
 ): unknown {
-  // Asset references are now preserved for GROQ dereferencing.
-  // This helper only recurses to keep the structure intact.
   if (value === null || value === undefined) {
     return value
   }

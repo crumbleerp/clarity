@@ -3,16 +3,26 @@ import { json } from '@codemirror/lang-json'
 import { Codemirror } from 'vue-codemirror'
 
 const toast = useToast()
-const { data: schemas, refresh } = await useFetch('/api/schemas')
+const currentDataset = useCurrentDataset()
+
+const { data: schemas, refresh } = await useFetch('/api/schemas', {
+  query: computed(() => ({ dataset: currentDataset.value }))
+})
 
 const input = ref('')
 const editing = ref<Record<string, unknown> | null>(null)
+
+watch(currentDataset, () => refresh())
 
 async function saveSchemas() {
   try {
     const parsed = JSON.parse(input.value)
     const arr = Array.isArray(parsed) ? parsed : [parsed]
-    await $fetch('/api/schemas', { method: 'POST', body: arr })
+    await $fetch('/api/schemas', {
+      method: 'POST',
+      body: arr,
+      query: { dataset: currentDataset.value }
+    })
     toast.add({ title: 'Schemas saved', color: 'success' })
     input.value = ''
     await refresh()
@@ -22,7 +32,10 @@ async function saveSchemas() {
 }
 
 async function deleteSchema(name: string) {
-  await $fetch(`/api/schemas/${name}`, { method: 'DELETE' })
+  await $fetch(`/api/schemas/${name}`, {
+    method: 'DELETE',
+    query: { dataset: currentDataset.value }
+  })
   toast.add({ title: `Schema "${name}" deleted`, color: 'success' })
   await refresh()
 }
