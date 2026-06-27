@@ -1,4 +1,4 @@
-export type ClarityFieldType
+export type FieldType
   = | 'string'
     | 'text'
     | 'markdown'
@@ -18,118 +18,43 @@ export type ClarityFieldType
     | 'document'
     | 'array'
 
-export type ClarityTypeType = 'document' | 'object'
+export interface Reference {
+  type: 'reference'
+  to: Array<{ type: string }>
+}
 
-export interface FieldDefinition {
+export interface InlineFieldType {
+  type: Exclude<FieldType, 'reference'> | 'reference'
+  to?: Array<{ type: string }>
+}
+
+export interface Field {
   name: string
   title?: string
-  type: ClarityFieldType
+  type: FieldType
   description?: string
   options?: Record<string, unknown>
-  fields?: FieldDefinition[]
-  of?: (FieldDefinition | ReferenceType)[]
+  fields?: Field[]
+  of?: (Field | Reference | InlineFieldType)[]
   to?: Array<{ type: string }>
   validation?: unknown
   [key: string]: unknown
 }
 
-export interface ReferenceType {
-  type: 'reference'
-  to: Array<{ type: string }>
-}
-
-export interface TypeDefinition {
+export interface Type {
   name: string
   title?: string
-  type: ClarityTypeType
+  type: 'document' | 'object'
   description?: string
-  fields?: FieldDefinition[]
+  fields?: Field[]
   options?: Record<string, unknown>
   [key: string]: unknown
 }
 
-export interface ClaritySchema {
-  name: string
-  title: string
-  schemaType: string
-  fields: FieldDefinition[]
-  [key: string]: unknown
-}
-
-export function defineField<T extends FieldDefinition>(def: T): T {
+export function defineField<T extends Field>(def: T): T {
   return def
 }
 
-export function defineType<T extends TypeDefinition>(def: T): T {
+export function defineType<T extends Type>(def: T): T {
   return def
-}
-
-export interface I18nFieldInput {
-  name: string
-  title?: string
-  type: ClarityFieldType
-  description?: string
-  options?: Record<string, unknown>
-  validation?: unknown
-}
-
-export interface ThemeFieldInput {
-  name: string
-  title?: string
-  type: ClarityFieldType
-  description?: string
-  options?: Record<string, unknown>
-  validation?: unknown
-}
-
-export function defineI18nField(
-  def: I18nFieldInput,
-  locales: string[] = ['en']
-): FieldDefinition {
-  return defineField({
-    ...def,
-    type: 'object',
-    fields: locales.map(locale =>
-      defineField({
-        name: locale,
-        title: locale.toUpperCase(),
-        type: def.type
-      })
-    )
-  })
-}
-
-export function defineThemeField(
-  def: ThemeFieldInput,
-  themes: string[] = ['light', 'dark']
-): FieldDefinition {
-  return defineField({
-    ...def,
-    type: 'object',
-    fields: themes.map(theme =>
-      defineField({
-        name: theme,
-        title: theme,
-        type: def.type
-      })
-    )
-  })
-}
-
-export function createI18nField(locales: string[]) {
-  return (def: I18nFieldInput) => defineI18nField(def, locales)
-}
-
-export function createThemeField(themes: string[]) {
-  return (def: ThemeFieldInput) => defineThemeField(def, themes)
-}
-
-export function toClaritySchema(def: TypeDefinition): ClaritySchema {
-  return {
-    name: def.name,
-    title: def.title || def.name,
-    schemaType: def.type || 'document',
-    fields: def.fields || [],
-    ...def.options
-  }
 }

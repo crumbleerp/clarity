@@ -1,8 +1,11 @@
+import type { Type } from './schema.js'
+
 export interface Config {
   endpoint?: string
   dataset?: string
   version?: string
   token?: string
+  schema?: Type | Type[]
   fetch?: typeof globalThis.fetch
 }
 
@@ -13,6 +16,7 @@ export interface Options {
 
 export class Client {
   config: Required<Pick<Config, 'version'>> & Config
+  schema: Type[]
 
   constructor(config: Config = {}) {
     this.config = {
@@ -20,6 +24,11 @@ export class Client {
       endpoint: '',
       ...config
     }
+    this.schema = Array.isArray(config.schema)
+      ? config.schema
+      : config.schema
+        ? [config.schema]
+        : []
   }
 
   fetch<R = unknown>(query: string, params: Record<string, unknown> = {}, options: Options = {}): Promise<R> {
