@@ -5,6 +5,6 @@ export default defineConfig({
   out: './server/db/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5432/clarity'
+    url: process.env.NUXT_DATABASE_URL || process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5432/clarity'
   }
 })

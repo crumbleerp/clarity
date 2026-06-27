@@ -7,8 +7,8 @@ export default defineNitroPlugin(async () => {
   const config = useRuntimeConfig()
   const db = useDb()
 
-  const username = config.rootUsername || process.env.ROOT_USERNAME || 'admin'
-  const password = config.rootPassword || process.env.ROOT_PASSWORD || 'admin'
+  const username = config.rootUsername || 'admin'
+  const password = config.rootPassword || 'admin'
 
   const existing = await db.select().from(users).where(eq(users.username, username)).limit(1)
 

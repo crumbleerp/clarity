@@ -28,22 +28,22 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
 <template>
   <div class="relative min-h-screen flex items-center justify-center overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-background" />
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,theme(colors.primary.DEFAULT/10%),transparent_40%)]" />
-
-    <UCard class="relative z-10 w-full max-w-md mx-4 shadow-2xl">
+    <BackgroundGlow class="absolute w-full h-full -z-10" />
+    <img
+      src="~/assets/svg/made_by.svg"
+      class="absolute bottom-6 left-1/2 -translate-x-1/2 h-8"
+    >
+    <UCard
+      class="relative z-10 w-full max-w-md mx-4 shadow-2xl"
+      :ui="{ body: 'p-6!' }"
+    >
       <template #header>
-        <div class="flex flex-col items-center gap-4 py-4">
-          <div class="flex items-center justify-center size-16 rounded-2xl text-primary">
-            <img
-              src="~/assets/svg/logo.svg"
-              class="h-12"
-            >
-          </div>
+        <div class="flex flex-col">
+          <img
+            src="~/assets/svg/logo.svg"
+            class="h-12"
+          >
           <div class="text-center">
-            <h1 class="text-2xl font-bold font-unbounded">
-              Clarity
-            </h1>
             <p class="text-sm text-muted mt-1">
               GROQ-powered self-hosted CMS
             </p>

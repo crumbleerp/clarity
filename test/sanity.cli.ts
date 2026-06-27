@@ -8,6 +8,6 @@ export default defineCliConfig({
   },
   deployment: {
     autoUpdates: true,
-    appId: process.env.SANITY_APP
+    appId: process.env.NUXT_SANITY_APP || process.env.SANITY_APP
   }
 })

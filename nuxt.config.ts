@@ -17,20 +17,20 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
-    databaseUrl: '',
-    dataset: '',
-    rootUsername: 'admin',
-    rootPassword: 'admin',
-    sessionSecret: 'some-random-secret-at-least-32-chars-long',
-    s3Endpoint: '',
-    s3Region: 'us-east-1',
-    s3Bucket: '',
-    s3AccessKey: '',
-    s3SecretKey: '',
-    s3PublicUrl: '',
+    databaseUrl: process.env.NUXT_DATABASE_URL || process.env.DATABASE_URL || '',
+    dataset: process.env.NUXT_DATASET || process.env.DATASET || '',
+    rootUsername: process.env.NUXT_ROOT_USERNAME || process.env.ROOT_USERNAME || 'admin',
+    rootPassword: process.env.NUXT_ROOT_PASSWORD || process.env.ROOT_PASSWORD || 'admin',
+    sessionSecret: process.env.NUXT_SESSION_SECRET || process.env.SESSION_SECRET || 'some-random-secret-at-least-32-chars-long',
+    s3Endpoint: process.env.NUXT_S3_ENDPOINT || process.env.S3_ENDPOINT || '',
+    s3Region: process.env.NUXT_S3_REGION || process.env.S3_REGION || 'us-east-1',
+    s3Bucket: process.env.NUXT_S3_BUCKET || process.env.S3_BUCKET || '',
+    s3AccessKey: process.env.NUXT_S3_ACCESS_KEY || process.env.S3_ACCESS_KEY || '',
+    s3SecretKey: process.env.NUXT_S3_SECRET_KEY || process.env.S3_SECRET_KEY || '',
+    s3PublicUrl: process.env.NUXT_S3_PUBLIC_URL || process.env.S3_PUBLIC_URL || '',
     public: {
-      dataset: process.env.DATASET || 'production',
-      apiBaseUrl: process.env.BASE_URL || ''
+      dataset: process.env.NUXT_PUBLIC_DATASET || process.env.DATASET || 'production',
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || process.env.BASE_URL || ''
     }
   },
 

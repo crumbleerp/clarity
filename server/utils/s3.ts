@@ -12,12 +12,12 @@ export interface S3Config {
 export function getS3Config(): S3Config {
   const config = useRuntimeConfig()
   return {
-    endpoint: config.s3Endpoint || process.env.S3_ENDPOINT || '',
-    region: config.s3Region || process.env.S3_REGION || 'us-east-1',
-    bucket: config.s3Bucket || process.env.S3_BUCKET || '',
-    accessKeyId: config.s3AccessKey || process.env.S3_ACCESS_KEY || '',
-    secretAccessKey: config.s3SecretKey || process.env.S3_SECRET_KEY || '',
-    publicUrl: config.s3PublicUrl || process.env.S3_PUBLIC_URL || ''
+    endpoint: config.s3Endpoint || '',
+    region: config.s3Region || 'us-east-1',
+    bucket: config.s3Bucket || '',
+    accessKeyId: config.s3AccessKey || '',
+    secretAccessKey: config.s3SecretKey || '',
+    publicUrl: config.s3PublicUrl || ''
   }
 }
 

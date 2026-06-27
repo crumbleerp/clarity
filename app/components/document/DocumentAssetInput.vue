@@ -245,13 +245,6 @@ const actionItems = computed(() => [
           @click="selectOpen = true"
         />
       </div>
-      <input
-        ref="fileInput"
-        type="file"
-        class="hidden"
-        :accept="type === 'image' ? 'image/*' : undefined"
-        @change="onFileChange"
-      >
     </div>
 
     <div
@@ -303,6 +296,14 @@ const actionItems = computed(() => [
         <span v-if="assetDoc?.size">{{ formatBytes(assetDoc.size) }}</span>
       </div>
     </div>
+
+    <input
+      ref="fileInput"
+      type="file"
+      class="hidden"
+      :accept="type === 'image' ? 'image/*' : undefined"
+      @change="onFileChange"
+    >
 
     <MediaSelectModal
       v-model:open="selectOpen"

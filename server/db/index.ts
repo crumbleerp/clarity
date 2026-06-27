@@ -13,7 +13,7 @@ let _db: ReturnType<typeof drizzle<typeof schema>> | null = null
 export function useDb() {
   if (!_db) {
     const config = useRuntimeConfig()
-    const url = config.databaseUrl || process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5432/clarity'
+    const url = config.databaseUrl || 'postgresql://user:pass@localhost:5432/clarity'
     const client = postgres(url)
     _db = drizzle(client, { schema })
   }

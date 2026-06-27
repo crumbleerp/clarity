@@ -1,0 +1,37 @@
+services:
+  app:
+    image: crumbl/clarity:latest
+    container_name: clarity-app
+    ports:
+      - "3000:3000"
+    environment:
+      NUXT_DATABASE_URL: postgresql://clarity:clarity@postgres:5432/clarity
+      NUXT_DATASET: production
+      NUXT_PUBLIC_DATASET: production
+      NUXT_ROOT_USERNAME: admin
+      NUXT_ROOT_PASSWORD: admin
+      NUXT_SESSION_SECRET: some-random-secret-at-least-32-chars-long
+      NUXT_PUBLIC_API_BASE_URL: "https://example.com"
+      NUXT_S3_ENDPOINT: https://s3.example.com
+      NUXT_S3_REGION: us-east-1
+      NUXT_S3_BUCKET: clarity-bucket
+      NUXT_S3_ACCESS_KEY: access-key
+      NUXT_S3_SECRET_KEY: secret-key
+      NUXT_S3_PUBLIC_URL: https://cdn.example.com
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: clarity-postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: clarity
+      POSTGRES_PASSWORD: clarity
+      POSTGRES_DB: clarity
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
