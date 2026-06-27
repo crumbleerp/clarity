@@ -1,6 +1,6 @@
 services:
   app:
-    image: crumbl/clarity:latest
+    image: crumbleerp/clarity:latest
     container_name: clarity-app
     ports:
       - "3000:3000"

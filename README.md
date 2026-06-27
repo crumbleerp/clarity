@@ -41,7 +41,7 @@ Copy `docker-compose.yaml` to your server and adjust the values:
 ```yaml
 services:
   app:
-    image: crumbl/clarity:latest
+    image: crumbleerp/clarity:latest
     ports:
       - "3000:3000"
     environment:
@@ -146,7 +146,7 @@ docker run -d \
   -e NUXT_ROOT_USERNAME=admin \
   -e NUXT_ROOT_PASSWORD=change-me \
   -e NUXT_SESSION_SECRET=your-random-secret-at-least-32-chars \
-  crumbl/clarity:latest
+  crumbleerp/clarity:latest
 ```
 
 ### Environment Variables
