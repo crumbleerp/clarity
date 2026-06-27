@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/crumbl/clarity/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href="https://hub.docker.com/r/crumbl/clarity"><img src="https://img.shields.io/docker/pulls/crumbl/clarity?label=docker%20pulls" alt="Docker Pulls"></a>
-  <a href="https://www.npmjs.com/package/@crumbl/clarity"><img src="https://img.shields.io/npm/v/@crumbl/clarity" alt="npm"></a>
+  <a href="https://github.com/crumbleerp/clarity/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <a href="https://hub.docker.com/r/crumbleerp/clarity"><img src="https://img.shields.io/docker/pulls/crumbleerp/clarity?label=docker%20pulls" alt="Docker Pulls"></a>
+  <a href="https://www.npmjs.com/package/@crumbleerp/clarity"><img src="https://img.shields.io/npm/v/@crumbleerp/clarity" alt="npm"></a>
 </p>
 
 ---
@@ -108,11 +108,11 @@ Click **Import** — all documents, schemas, and assets (images/files) will be m
 Install the client:
 
 ```bash
-npm install @crumbl/clarity
+npm install @crumbleerp/clarity
 ```
 
 ```ts
-import { createClient, groq } from '@crumbl/clarity'
+import { createClient, groq } from '@crumbleerp/clarity'
 
 const client = createClient({
   endpoint: 'https://cms.example.com',  // your Clarity instance
@@ -217,10 +217,10 @@ Navigate to **Settings → Schemas** and define your types using the built-in JS
 
 ### JavaScript client
 
-Use the `@crumbl/clarity` package to define schemas in code:
+Use the `@crumbleerp/clarity` package to define schemas in code:
 
 ```ts
-import { createClient, defineType, defineField, groq } from '@crumbl/clarity'
+import { createClient, defineType, defineField, groq } from '@crumbleerp/clarity'
 
 const client = createClient({
   endpoint: 'https://your-clarity-instance.com',

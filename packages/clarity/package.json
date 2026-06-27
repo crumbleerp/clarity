@@ -1,5 +1,5 @@
 {
-  "name": "@crumbl/clarity",
+  "name": "@crumbleerp/clarity",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
