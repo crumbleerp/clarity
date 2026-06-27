@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 FROM node:22-alpine AS build
 
 ENV PNPM_HOME=/pnpm
@@ -15,7 +13,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN pnpm build
+RUN NODE_OPTIONS="--max-old-space-size=12000" pnpm build
 
 FROM node:22-alpine
 
