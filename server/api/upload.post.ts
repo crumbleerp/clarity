@@ -1,10 +1,7 @@
 import { uploadToS3 } from '../utils/s3'
 
 export default defineEventHandler(async (event) => {
-  const user = await authenticateUser(event)
-  if (!user) {
-    throw createError({ statusCode: 401, message: 'Not authenticated' })
-  }
+  requireUser(event)
 
   const formData = await readMultipartFormData(event)
   if (!formData || formData.length === 0) {

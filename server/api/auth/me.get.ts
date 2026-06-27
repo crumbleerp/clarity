@@ -1,9 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const user = await authenticateUser(event)
-
-  if (!user) {
-    throw createError({ statusCode: 401, message: 'Not authenticated' })
-  }
+  const user = requireUser(event)
 
   return {
     id: user.id,

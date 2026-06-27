@@ -1,12 +1,13 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import * as accessTokens from './schema/accessTokens'
 import * as datasets from './schema/datasets'
 import * as documents from './schema/documents'
 import * as schemas from './schema/schemas'
 import * as users from './schema/users'
 import * as jobs from './schema/jobs'
 
-const schema = { ...datasets, ...documents, ...schemas, ...users, ...jobs }
+const schema = { ...accessTokens, ...datasets, ...documents, ...schemas, ...users, ...jobs }
 
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null
 

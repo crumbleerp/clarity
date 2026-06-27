@@ -22,6 +22,20 @@
       "when": 1782511265816,
       "tag": "0002_sparkling_guardsmen",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782588704079,
+      "tag": "0003_fresh_dormammu",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782593668197,
+      "tag": "0004_absurd_doctor_doom",
+      "breakpoints": true
     }
   ]
 }

@@ -3,10 +3,7 @@ import { useDb } from '../../db'
 import { users } from '../../db/schema/users'
 
 export default defineEventHandler(async (event) => {
-  const currentUser = await authenticateUser(event)
-  if (!currentUser || currentUser.role !== 'root') {
-    throw createError({ statusCode: 403, message: 'Forbidden' })
-  }
+  requireRoot(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

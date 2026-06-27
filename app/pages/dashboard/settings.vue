@@ -13,14 +13,22 @@ const importState = reactive({
 })
 
 const importing = ref(false)
-const modalOpen = ref(false)
+const userModalOpen = ref(false)
 const editingUser = ref<{ id: string, username: string, password: string, role: 'admin' | 'moderator' | 'guest' } | null>(null)
 
+const tokenModalOpen = ref(false)
+const createdToken = ref<string | null>(null)
+
+const { user: authUser } = useAuth()
+const allowRootToken = computed(() => authUser.value?.role === 'root')
+
 const { data: users, refresh: refreshUsers } = await useFetch('/api/users')
+const { data: accessTokens, refresh: refreshAccessTokens } = await useFetch('/api/access-tokens')
 
 const sections = [
   { id: 'import', label: 'Import' },
   { id: 'users', label: 'Users' },
+  { id: 'access-tokens', label: 'Access Tokens' },
   { id: 'danger', label: 'Danger Zone' }
 ]
 
@@ -58,7 +66,7 @@ async function onImportSubmit() {
 
 function openCreateUser() {
   editingUser.value = null
-  modalOpen.value = true
+  userModalOpen.value = true
 }
 
 function openEditUser(user: { id: string, username: string, role: string }) {
@@ -68,7 +76,7 @@ function openEditUser(user: { id: string, username: string, role: string }) {
     password: '',
     role: user.role as 'admin' | 'moderator' | 'guest'
   }
-  modalOpen.value = true
+  userModalOpen.value = true
 }
 
 async function saveUser(data: { id?: string, username: string, password: string, role: string }) {
@@ -90,6 +98,40 @@ async function saveUser(data: { id?: string, username: string, password: string,
   } catch (e: unknown) {
     toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
   }
+}
+
+async function saveAccessToken(data: { name: string, role: string, expiresAt: string }) {
+  try {
+    const result = await $fetch('/api/access-tokens', {
+      method: 'POST',
+      body: {
+        name: data.name,
+        role: data.role,
+        expiresAt: data.expiresAt || undefined
+      }
+    }) as { token: string }
+    createdToken.value = result.token
+    await refreshAccessTokens()
+    toast.add({ title: 'Access token created', color: 'success' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
+  }
+}
+
+async function deleteAccessToken(id: string) {
+  try {
+    await $fetch(`/api/access-tokens/${id}`, { method: 'DELETE' })
+    await refreshAccessTokens()
+    toast.add({ title: 'Access token deleted', color: 'success' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
+  }
+}
+
+function copyToken() {
+  if (!createdToken.value) return
+  navigator.clipboard.writeText(createdToken.value)
+  toast.add({ title: 'Token copied', color: 'success' })
 }
 
 async function truncateData() {
@@ -354,6 +396,61 @@ useHead({ title: 'Settings' })
             </UCard>
           </section>
 
+          <!-- Access Tokens -->
+          <section
+            id="access-tokens"
+            class="scroll-mt-10"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold">
+                Access Tokens
+              </h2>
+              <UButton
+                color="secondary"
+                label="New Token"
+                icon="i-lucide-plus"
+                size="sm"
+                @click="tokenModalOpen = true"
+              />
+            </div>
+
+            <UCard
+              variant="outline"
+              class="overflow-hidden"
+              :ui="{ body: 'p-0!' }"
+            >
+              <UTable
+                :data="accessTokens || []"
+                :columns="[
+                  { accessorKey: 'name', header: 'Name' },
+                  { accessorKey: 'tokenPrefix', header: 'Token' },
+                  { accessorKey: 'role', header: 'Role' },
+                  { accessorKey: 'expiresAt', header: 'Expires' },
+                  { accessorKey: 'createdAt', header: 'Created' },
+                  { id: 'actions', header: 'Actions' }
+                ]"
+              >
+                <template #expiresAt-cell="{ row }">
+                  {{ row.original.expiresAt ? new Date(row.original.expiresAt).toLocaleString() : 'Never' }}
+                </template>
+
+                <template #createdAt-cell="{ row }">
+                  {{ new Date(row.original.createdAt).toLocaleDateString() }}
+                </template>
+
+                <template #actions-cell="{ row }">
+                  <UButton
+                    icon="i-lucide-trash-2"
+                    size="xs"
+                    variant="ghost"
+                    color="error"
+                    @click="deleteAccessToken(row.original.id)"
+                  />
+                </template>
+              </UTable>
+            </UCard>
+          </section>
+
           <!-- Danger Zone -->
           <section
             id="danger"
@@ -390,10 +487,40 @@ useHead({ title: 'Settings' })
       </div>
 
       <UserFormModal
-        v-model:open="modalOpen"
+        v-model:open="userModalOpen"
         :user="editingUser"
         @submit="saveUser"
       />
+
+      <AccessTokenFormModal
+        v-model:open="tokenModalOpen"
+        :allow-root="allowRootToken"
+        @submit="saveAccessToken"
+      />
+
+      <UModal
+        :open="!!createdToken"
+        title="Access Token Created"
+        @update:open="createdToken = null"
+      >
+        <template #body>
+          <p class="text-sm text-muted mb-4">
+            Copy this token now. You will not be able to see it again.
+          </p>
+          <div class="flex items-center gap-2">
+            <UInput
+              :model-value="createdToken || ''"
+              class="flex-1"
+              readonly
+            />
+            <UButton
+              icon="i-lucide-copy"
+              label="Copy"
+              @click="copyToken"
+            />
+          </div>
+        </template>
+      </UModal>
     </div>
   </div>
 </template>
