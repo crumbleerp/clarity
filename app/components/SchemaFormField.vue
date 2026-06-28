@@ -11,12 +11,15 @@ export interface FieldDef {
   validation?: unknown
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   field: FieldDef
   modelValue: unknown
   dataset?: string
   hideLabel?: boolean
-}>()
+  readonly?: boolean
+}>(), {
+  readonly: false
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: unknown]
@@ -49,6 +52,8 @@ const valueNumber = typedValue<number>()
 const valueReference = typedValue<{ _type: string, _ref: string } | undefined>()
 const valueAsset = typedValue<{ _type: string, asset?: { _ref: string } } | undefined>()
 const valueObject = typedValue<Record<string, unknown>>()
+
+const isArrayField = computed(() => props.field.type === 'array' || Array.isArray(props.field.of))
 
 function pickInputType() {
   switch (props.field.type) {
@@ -107,6 +112,7 @@ function updateArrayItem(index: number, v: unknown) {
       <USwitch
         v-model="valueBoolean"
         :name="field.name"
+        :disabled="readonly"
       />
     </component>
 
@@ -119,6 +125,7 @@ function updateArrayItem(index: number, v: unknown) {
       <UTextarea
         v-model="valueString"
         :name="field.name"
+        :disabled="readonly"
         :rows="4"
         class="font-mono text-sm w-full"
       />
@@ -149,6 +156,7 @@ function updateArrayItem(index: number, v: unknown) {
         v-model="valueNumber"
         class="w-full"
         :name="field.name"
+        :disabled="readonly"
         type="number"
       />
     </component>
@@ -163,6 +171,7 @@ function updateArrayItem(index: number, v: unknown) {
         <UInput
           v-model="valueString"
           :name="field.name"
+          :disabled="readonly"
           type="color"
           class="w-full"
         />
@@ -170,6 +179,7 @@ function updateArrayItem(index: number, v: unknown) {
           v-model="valueString"
           class="w-full"
           :name="field.name"
+          :disabled="readonly"
           type="text"
           placeholder="#000000"
         />
@@ -188,6 +198,7 @@ function updateArrayItem(index: number, v: unknown) {
         :to="field.to"
         :dataset="dataset"
         :name="field.name"
+        :readonly="readonly"
       />
     </component>
 
@@ -202,28 +213,13 @@ function updateArrayItem(index: number, v: unknown) {
         :type="field.type"
         :name="field.name"
         :dataset="dataset"
+        :readonly="readonly"
       />
     </component>
 
     <component
       :is="wrapper"
-      v-else-if="field.type === 'object' || field.type === 'document'"
-      v-bind="wrapperProps"
-      class="w-full"
-    >
-      <UCard class="p-4 bg-elevated/25">
-        <DocumentObjectForm
-          v-if="field.fields?.length"
-          v-model="valueObject"
-          :fields="field.fields"
-          :dataset="dataset"
-        />
-      </UCard>
-    </component>
-
-    <component
-      :is="wrapper"
-      v-else-if="field.type === 'array'"
+      v-else-if="isArrayField"
       v-bind="wrapperProps"
       class="w-full"
     >
@@ -242,10 +238,12 @@ function updateArrayItem(index: number, v: unknown) {
               :field="(field.of?.[0] || { name: 'item', type: 'string' })"
               :model-value="item"
               :dataset="dataset"
+              :readonly="readonly"
               @update:model-value="v => updateArrayItem(idx, v)"
             />
           </div>
           <UButton
+            v-if="!readonly"
             icon="i-lucide-trash"
             size="sm"
             color="error"
@@ -256,12 +254,30 @@ function updateArrayItem(index: number, v: unknown) {
       </UCard>
 
       <UButton
+        v-if="!readonly"
         icon="i-lucide-plus"
         size="sm"
         variant="ghost"
         :label="`Add ${field.title || field.name || 'item'}`"
         @click="addArrayItem"
       />
+    </component>
+
+    <component
+      :is="wrapper"
+      v-else-if="field.type === 'object' || field.type === 'document'"
+      v-bind="wrapperProps"
+      class="w-full"
+    >
+      <UCard class="bg-elevated/25">
+        <DocumentObjectForm
+          v-if="field.fields?.length"
+          v-model="valueObject"
+          :fields="field.fields"
+          :dataset="dataset"
+          :readonly="readonly"
+        />
+      </UCard>
     </component>
 
     <component
@@ -274,6 +290,7 @@ function updateArrayItem(index: number, v: unknown) {
         v-model="valueString"
         class="w-full"
         :name="field.name"
+        :disabled="readonly"
         :type="pickInputType()"
       />
     </component>

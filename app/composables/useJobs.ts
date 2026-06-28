@@ -51,7 +51,7 @@ export function useJobs() {
 
   async function fetchJob(id: string) {
     try {
-      const data = await $fetch(`/api/jobs/${id}`) as Job
+      const data = await $fetch<Job>(`/api/jobs/${id}`)
       jobs.value[id] = data
       return data
     } catch {

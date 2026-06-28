@@ -2,7 +2,7 @@ export default defineAppConfig({
   ui: {
     card: {
       slots: {
-        body: 'p-2!'
+        body: 'px-6! py-4!'
       }
     }
   }

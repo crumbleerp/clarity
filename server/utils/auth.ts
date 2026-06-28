@@ -10,10 +10,12 @@ const SESSION_CONFIG = {
   cookie: { secure: !import.meta.dev }
 }
 
+export type UserRole = 'root' | 'admin' | 'moderator' | 'guest'
+
 export interface AuthUser {
   id: string
   username: string
-  role: string
+  role: UserRole
   isToken?: boolean
 }
 
@@ -55,7 +57,7 @@ export async function resolveAuthUser(event: H3Event): Promise<AuthUser | null> 
 
   const tokenUser = await verifyAccessToken(event)
   if (tokenUser) {
-    return { id: tokenUser.id, username: tokenUser.name, role: tokenUser.role, isToken: true }
+    return { id: tokenUser.id, username: tokenUser.name, role: tokenUser.role as UserRole, isToken: true }
   }
 
   return null
@@ -87,4 +89,37 @@ export function requireAdminOrRoot(event: H3Event): AuthUser {
 
 export function isAdminOrRoot(user: AuthUser): boolean {
   return user.role === 'admin' || user.role === 'root'
+}
+
+export function requireModeratorOrAbove(event: H3Event): AuthUser {
+  const user = requireUser(event)
+  if (user.role !== 'moderator' && user.role !== 'admin' && user.role !== 'root') {
+    throw createError({ statusCode: 403, message: 'Forbidden' })
+  }
+  return user
+}
+
+export function requireEditor(event: H3Event): AuthUser {
+  return requireModeratorOrAbove(event)
+}
+
+export function isReadOnly(user: AuthUser): boolean {
+  return user.role === 'guest'
+}
+
+export function canManageUsers(current: AuthUser): boolean {
+  return current.role === 'admin' || current.role === 'root'
+}
+
+export function canCreateUser(current: AuthUser, targetRole: UserRole): boolean {
+  if (current.role === 'root') return true
+  if (current.role === 'admin') return targetRole === 'guest' || targetRole === 'moderator'
+  return false
+}
+
+export function canUpdateUser(current: AuthUser, target: { role: UserRole, id: string }): boolean {
+  if (current.role === 'root') return true
+  if (current.role !== 'admin') return false
+  if (target.role === 'root') return false
+  return target.role === 'guest' || target.role === 'moderator'
 }

@@ -63,7 +63,7 @@
     --ui-viewport-height: calc(100dvh - var(--ui-header-height));
     --ui-container-height: calc(100dvh - var(--ui-header-height) - calc(var(--spacing) * 24));
 
-    --ui-primary: var(--color-violet-500);
+    --ui-primary: var(--color-violet-300);
     --ui-text-muted: hsl(240, 5%, 70%);
 
     --ui-success: var(--color-emerald-500);

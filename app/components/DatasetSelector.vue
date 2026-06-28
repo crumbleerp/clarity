@@ -1,7 +1,10 @@
 <script setup lang="ts">
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: string
-}>()
+  allowCreate?: boolean
+}>(), {
+  allowCreate: true
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
@@ -87,6 +90,7 @@ async function confirmCreate() {
           <div class="border-t border-default my-1" />
 
           <button
+            v-if="allowCreate"
             class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 text-secondary hover:bg-secondary/10"
             @click="startCreate"
           >

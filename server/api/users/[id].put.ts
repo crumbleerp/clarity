@@ -3,7 +3,7 @@ import { useDb } from '../../db'
 import { users } from '../../db/schema/users'
 
 export default defineEventHandler(async (event) => {
-  requireRoot(event)
+  const current = requireAdminOrRoot(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {
@@ -18,8 +18,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
+  if (current.role === 'admin' && existing[0]!.role === 'root') {
+    throw createError({ statusCode: 403, message: 'Forbidden' })
+  }
+
   if (existing[0]!.role === 'root' && body.role && body.role !== 'root') {
     throw createError({ statusCode: 400, message: 'Cannot change root user role' })
+  }
+
+  if (body.role && !canCreateUser(current, body.role)) {
+    throw createError({ statusCode: 403, message: 'Forbidden' })
   }
 
   const rows = await db.update(users)

@@ -2,6 +2,12 @@
 import { json } from '@codemirror/lang-json'
 import { Codemirror } from 'vue-codemirror'
 
+withDefaults(defineProps<{
+  readonly?: boolean
+}>(), {
+  readonly: false
+})
+
 const toast = useToast()
 const currentDataset = useCurrentDataset()
 
@@ -60,10 +66,14 @@ function editSchema(schema: Record<string, unknown>) {
           v-model="input"
           :extensions="[json()]"
           :style="{ height: '100%', width: '100%' }"
+          :disabled="readonly"
         />
       </div>
 
-      <div class="flex gap-2 p-2 justify-end border-t">
+      <div
+        v-if="!readonly"
+        class="flex gap-2 p-2 justify-end border-t"
+      >
         <UButton
           label="Save"
           icon="i-lucide-save"
@@ -111,7 +121,10 @@ function editSchema(schema: Record<string, unknown>) {
               {{ schema.name }} · {{ (schema.fields as unknown[])?.length || 0 }} fields
             </div>
           </div>
-          <div class="flex gap-1">
+          <div
+            v-if="!readonly"
+            class="flex gap-1"
+          >
             <UButton
               icon="i-lucide-pencil"
               size="sm"

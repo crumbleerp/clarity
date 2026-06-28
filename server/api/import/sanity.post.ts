@@ -1,8 +1,9 @@
 import { createJob } from '../../services/jobs'
 import { runImportJob, type ImportConfig } from '../../services/import-worker'
+import { logger } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
-  requireUser(event)
+  requireModeratorOrAbove(event)
 
   const body = await readBody(event)
   const { projectId, dataset, token, apiVersion = 'v2026-06-26', targetDataset = 'production' } = body
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const jobId = await createJob(config as unknown as Record<string, string>)
 
   runImportJob(jobId, config).catch((e: unknown) => {
-    console.error('[import-worker] failed:', e)
+    logger.error({ err: e, jobId }, 'Import job failed')
   })
 
   return { jobId }

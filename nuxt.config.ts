@@ -27,6 +27,8 @@ export default defineNuxtConfig({
     s3AccessKey: process.env.NUXT_S3_ACCESS_KEY || process.env.S3_ACCESS_KEY || '',
     s3SecretKey: process.env.NUXT_S3_SECRET_KEY || process.env.S3_SECRET_KEY || '',
     s3PublicUrl: process.env.NUXT_S3_PUBLIC_URL || process.env.S3_PUBLIC_URL || '',
+    corsOrigins: process.env.NUXT_CORS_ORIGINS || process.env.CORS_ORIGINS || '',
+    groqCacheTtl: process.env.NUXT_GROQ_CACHE_TTL || process.env.GROQ_CACHE_TTL || '0',
     public: {
       dataset: process.env.NUXT_PUBLIC_DATASET || process.env.DATASET || 'production',
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || process.env.BASE_URL || ''

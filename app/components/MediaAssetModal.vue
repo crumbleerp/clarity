@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { MediaAsset } from '~/types/media'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   asset?: MediaAsset | null
   open: boolean
-}>()
+  readonly?: boolean
+}>(), {
+  readonly: false
+})
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
@@ -174,6 +177,7 @@ function onDelete() {
           <UFormField label="Tags">
             <UInput
               v-model="tags"
+              :disabled="readonly"
               placeholder="Enter tags separated by commas"
               class="w-full"
             />
@@ -182,6 +186,7 @@ function onDelete() {
           <UFormField label="Filename">
             <UInput
               v-model="filename"
+              :disabled="readonly"
               class="w-full"
             />
           </UFormField>
@@ -189,6 +194,7 @@ function onDelete() {
           <UFormField label="Title">
             <UInput
               v-model="title"
+              :disabled="readonly"
               class="w-full"
             />
           </UFormField>
@@ -196,6 +202,7 @@ function onDelete() {
           <UFormField label="Alt Text">
             <UInput
               v-model="altText"
+              :disabled="readonly"
               class="w-full"
             />
           </UFormField>
@@ -203,12 +210,14 @@ function onDelete() {
           <UFormField label="Description">
             <UTextarea
               v-model="description"
+              :disabled="readonly"
               :rows="4"
               class="w-full"
             />
           </UFormField>
 
           <UButton
+            v-if="!readonly"
             color="error"
             variant="ghost"
             icon="i-lucide-trash"
@@ -228,6 +237,7 @@ function onDelete() {
           @click="isOpen = false"
         />
         <UButton
+          v-if="!readonly"
           label="Save and close"
           icon="i-lucide-save"
           @click="onSave"

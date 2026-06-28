@@ -13,4 +13,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (user.value && to.path === '/login') {
     return navigateTo('/dashboard/documents')
   }
+
+  if (user.value?.role === 'guest' && to.path.startsWith('/dashboard/settings')) {
+    return navigateTo('/dashboard/documents')
+  }
 })

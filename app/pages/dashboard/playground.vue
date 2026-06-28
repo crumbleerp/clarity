@@ -17,6 +17,48 @@ interface HistoryItem {
 }
 
 const STORAGE_KEY = 'clarity-playground-history'
+const STORAGE_STATE_KEY = 'clarity-playground-state'
+
+interface PlaygroundState {
+  query: string
+  params: string
+  dataset: string
+}
+
+const defaultQuery = `*[_type == "post"] | order(_createdAt desc) {
+  _id,
+  title,
+  slug
+}[0...10]`
+
+function readSavedState(): PlaygroundState {
+  if (!import.meta.client) {
+    return { query: defaultQuery, params: '{}', dataset: '' }
+  }
+  try {
+    const item = localStorage.getItem(STORAGE_STATE_KEY)
+    if (item) {
+      const parsed = JSON.parse(item) as Partial<PlaygroundState>
+      return {
+        query: parsed.query || defaultQuery,
+        params: parsed.params || '{}',
+        dataset: parsed.dataset || ''
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { query: defaultQuery, params: '{}', dataset: '' }
+}
+
+function writeSavedState(state: PlaygroundState) {
+  if (!import.meta.client) return
+  try {
+    localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state))
+  } catch {
+    // ignore
+  }
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -24,13 +66,15 @@ const runtimeConfig = useRuntimeConfig()
 const colorMode = useColorMode()
 const currentDataset = useCurrentDataset()
 
-const dataset = ref<string>((route.query.dataset as string) || currentDataset.value || runtimeConfig.public.dataset || 'production')
-const query = ref<string>(`*[_type == "post"] | order(_createdAt desc) {
-  _id,
-  title,
-  slug
-}[0...10]`)
-const params = ref<string>('{}')
+const savedState = readSavedState()
+
+const dataset = ref<string>((route.query.dataset as string) || savedState.dataset || currentDataset.value || runtimeConfig.public.dataset || 'production')
+const query = ref<string>(savedState.query)
+const params = ref<string>(savedState.params)
+
+watch([query, params, dataset], ([q, p, d]) => {
+  writeSavedState({ query: q, params: p, dataset: d })
+}, { deep: true })
 const executing = ref(false)
 const result = shallowRef<JsonValue | null>(null)
 const error = ref<string | null>(null)
@@ -119,19 +163,9 @@ async function execute() {
       qs.set('params', JSON.stringify(parsedParams))
     }
 
-    const res = await fetch(`${apiBaseUrl()}/v1/data/query/${encodeURIComponent(dataset.value)}?${qs.toString()}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    })
+    const data = await $fetch<{ result: JsonValue, ms?: number }>(`${apiBaseUrl()}/v1/data/query/${encodeURIComponent(dataset.value)}?${qs.toString()}`)
 
     responseTime.value = Math.round(performance.now() - start)
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: res.statusText }))
-      throw new Error(err.message || res.statusText)
-    }
-
-    const data = await res.json()
     result.value = data.result
 
     saveHistory(queryString, parsedParams || {})
@@ -170,6 +204,17 @@ function formatDate(iso: string) {
 
 function clearHistory() {
   history.value = []
+}
+
+function exportResult() {
+  if (result.value === null) return
+  const blob = new Blob([JSON.stringify(result.value, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `clarity-query-${dataset.value}-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 useHead({ title: 'Playground' })
@@ -220,6 +265,16 @@ useHead({ title: 'Playground' })
       <div class="flex-1 flex flex-col min-w-0 border-r border-default">
         <div class="flex items-center justify-between p-2 border-b border-default bg-default/30">
           <span class="text-xs font-semibold uppercase">Result</span>
+          <UButton
+            v-if="result !== null"
+            icon="i-lucide-download"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            @click="exportResult"
+          >
+            Export JSON
+          </UButton>
         </div>
         <div class="flex-1 overflow-auto p-4">
           <div

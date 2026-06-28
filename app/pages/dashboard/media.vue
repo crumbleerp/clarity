@@ -7,6 +7,7 @@ const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 const currentDataset = useCurrentDataset()
+const { canWriteMedia } = usePermissions()
 
 const search = ref((route.query.search as string) || '')
 const typeFilter = ref<'all' | 'image' | 'file'>((route.query.type as 'all' | 'image' | 'file') || 'all')
@@ -129,6 +130,12 @@ useHead({ title: 'Media' })
       </UButton>
     </div>
 
+    <MediaUploader
+      v-if="canWriteMedia"
+      :dataset="currentDataset"
+      @uploaded="refresh()"
+    />
+
     <div
       v-if="status === 'pending'"
       class="text-center text-muted py-12"
@@ -180,6 +187,7 @@ useHead({ title: 'Media' })
     <MediaAssetModal
       v-model:open="modalOpen"
       :asset="selectedAsset"
+      :readonly="!canWriteMedia"
       @save="saveAsset"
       @delete="deleteAsset"
     />

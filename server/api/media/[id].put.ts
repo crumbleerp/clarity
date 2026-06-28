@@ -3,10 +3,12 @@ import { useDb } from '../../db'
 import { documents } from '../../db/schema/documents'
 import { mergeDocument } from '../../utils/merge'
 import { invalidateCache } from '../../services/cache'
+import { requireModeratorOrAbove } from '../../utils/auth'
 
 const ASSET_TYPES = ['sanity.imageAsset', 'sanity.fileAsset']
 
 export default defineEventHandler(async (event) => {
+  requireModeratorOrAbove(event)
   const id = getRouterParam(event, 'id')
   const dataset = getQuery(event).dataset as string || 'production'
   const body = await readBody(event)

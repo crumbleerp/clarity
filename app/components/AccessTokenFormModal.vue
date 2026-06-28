@@ -7,7 +7,6 @@ export interface AccessTokenFormData {
 
 const props = defineProps<{
   open: boolean
-  allowRoot?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -15,17 +14,7 @@ const emit = defineEmits<{
   'submit': [data: AccessTokenFormData]
 }>()
 
-const roleOptions = computed(() => {
-  const options = [
-    { label: 'Admin', value: 'admin' },
-    { label: 'Moderator', value: 'moderator' },
-    { label: 'Guest', value: 'guest' }
-  ]
-  if (props.allowRoot) {
-    options.unshift({ label: 'Root', value: 'root' })
-  }
-  return options
-})
+const { assignableRoles } = usePermissions()
 
 const state = reactive<AccessTokenFormData>({
   name: '',
@@ -34,19 +23,20 @@ const state = reactive<AccessTokenFormData>({
 })
 
 const selectedRole = computed({
-  get: () => roleOptions.value.find(o => o.value === state.role) || roleOptions.value[roleOptions.value.length - 1],
+  get: () => assignableRoles.value.find(o => o.value === state.role) || assignableRoles.value[0],
   set: (v) => { state.role = v?.value as 'root' | 'admin' | 'moderator' | 'guest' || 'guest' }
 })
 
 watch(() => props.open, (open) => {
   if (open) {
     state.name = ''
-    state.role = 'guest'
+    state.role = (assignableRoles.value.find(o => o.value === 'guest')?.value || assignableRoles.value[0]?.value || 'guest') as AccessTokenFormData['role']
     state.expiresAt = ''
   }
 })
 
 function onSubmit() {
+  if (assignableRoles.value.length === 0) return
   emit('submit', { ...state })
   emit('update:open', false)
 }
@@ -72,14 +62,22 @@ function onSubmit() {
         </UFormField>
 
         <UFormField
+          v-if="assignableRoles.length"
           label="Role"
           name="role"
         >
           <USelectMenu
             v-model="selectedRole"
-            :items="roleOptions"
+            :items="assignableRoles"
           />
         </UFormField>
+
+        <div
+          v-if="assignableRoles.length === 0"
+          class="text-sm text-muted"
+        >
+          You do not have permission to assign roles.
+        </div>
 
         <UFormField
           label="Expires At"
@@ -100,6 +98,7 @@ function onSubmit() {
           <UButton
             type="submit"
             label="Create"
+            :disabled="assignableRoles.length === 0"
           />
         </div>
       </UForm>

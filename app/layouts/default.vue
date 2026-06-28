@@ -2,14 +2,20 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 
 const { user, logout } = useAuth()
+const { canSeeSettings, canCreateDatasets } = usePermissions()
 const currentDataset = useCurrentDataset()
 
-const items = computed<NavigationMenuItem[]>(() => [
-  { label: 'Documents', icon: 'i-lucide-file-text', to: '/dashboard/documents' },
-  { label: 'Media', icon: 'i-lucide-image', to: '/dashboard/media' },
-  { label: 'Playground', icon: 'i-lucide-terminal', to: '/dashboard/playground' },
-  { label: 'Settings', icon: 'i-lucide-settings', to: '/dashboard/settings' }
-])
+const items = computed<NavigationMenuItem[]>(() => {
+  const list: NavigationMenuItem[] = [
+    { label: 'Documents', icon: 'i-lucide-file-text', to: '/dashboard/documents' },
+    { label: 'Media', icon: 'i-lucide-image', to: '/dashboard/media' },
+    { label: 'Playground', icon: 'i-lucide-terminal', to: '/dashboard/playground' }
+  ]
+  if (canSeeSettings.value) {
+    list.push({ label: 'Settings', icon: 'i-lucide-settings', to: '/dashboard/settings' })
+  }
+  return list
+})
 </script>
 
 <template>
@@ -34,7 +40,10 @@ const items = computed<NavigationMenuItem[]>(() => [
 
       <template #right>
         <div class="flex items-center gap-2">
-          <DatasetSelector v-model="currentDataset" />
+          <DatasetSelector
+            v-model="currentDataset"
+            :allow-create="canCreateDatasets"
+          />
           <UAvatar
             :alt="user?.username"
             size="sm"
@@ -56,5 +65,6 @@ const items = computed<NavigationMenuItem[]>(() => [
     </main>
 
     <JobNotifications />
+    <CommandPalette />
   </div>
 </template>

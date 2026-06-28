@@ -15,6 +15,7 @@ import {
 import { uploadToS3 } from '../utils/s3'
 import { updateJob, addJobLog } from './jobs'
 import { invalidateCache } from './cache'
+import { logger } from '../utils/logger'
 
 const ASSET_CONCURRENCY = 10
 
@@ -45,6 +46,7 @@ export interface ImportConfig {
 }
 
 export async function runImportJob(jobId: string, config: ImportConfig) {
+  logger.info({ jobId, config: { projectId: config.projectId, dataset: config.dataset, targetDataset: config.targetDataset } }, 'Starting import job')
   await updateJob(jobId, 'running')
 
   const client = createClient({
@@ -120,6 +122,8 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
           .set({
             type: mapped.type,
             rev: mapped.rev,
+            status: 'published',
+            publishedAt: new Date(),
             createdAt: new Date(mapped.createdAt),
             updatedAt: new Date(mapped.updatedAt),
             data: mapped.data
@@ -131,6 +135,8 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
           dataset: datasetName,
           type: mapped.type,
           rev: mapped.rev,
+          status: 'published',
+          publishedAt: new Date(),
           createdAt: new Date(mapped.createdAt),
           updatedAt: new Date(mapped.updatedAt),
           data: mapped.data
@@ -209,6 +215,8 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
           .set({
             type: mapped.type,
             rev: mapped.rev,
+            status: 'published',
+            publishedAt: new Date(),
             createdAt: new Date(mapped.createdAt),
             updatedAt: new Date(mapped.updatedAt),
             data: mapped.data
@@ -220,6 +228,8 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
           dataset: datasetName,
           type: mapped.type,
           rev: mapped.rev,
+          status: 'published',
+          publishedAt: new Date(),
           createdAt: new Date(mapped.createdAt),
           updatedAt: new Date(mapped.updatedAt),
           data: mapped.data
@@ -240,9 +250,11 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
 
     await addJobLog(jobId, `Import completed. Documents: ${summary.importedDocuments}, schemas: ${summary.importedSchemas}, assets: ${summary.importedAssets}`)
     await updateJob(jobId, 'completed', summary)
+    logger.info({ jobId, summary }, 'Import job completed')
   } catch (e: unknown) {
     const msg = (e as Error).message
     await addJobLog(jobId, `Import failed: ${msg}`)
     await updateJob(jobId, 'failed', null, msg)
+    logger.error({ err: e, jobId }, 'Import job failed')
   }
 }

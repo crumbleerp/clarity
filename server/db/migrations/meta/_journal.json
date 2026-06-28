@@ -36,6 +36,20 @@
       "when": 1782593668197,
       "tag": "0004_absurd_doctor_doom",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782598172269,
+      "tag": "0005_bent_blob",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782601756848,
+      "tag": "0006_cold_veda",
+      "breakpoints": true
     }
   ]
 }

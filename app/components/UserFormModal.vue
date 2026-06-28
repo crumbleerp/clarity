@@ -19,11 +19,7 @@ const emit = defineEmits<{
 const isEdit = computed(() => !!props.user?.id)
 const isRoot = computed(() => props.user?.role === 'root')
 
-const roleOptions = [
-  { label: 'Admin', value: 'admin' },
-  { label: 'Moderator', value: 'moderator' },
-  { label: 'Guest', value: 'guest' }
-]
+const { assignableRoles } = usePermissions()
 
 const state = reactive<UserFormData>({
   username: '',
@@ -32,7 +28,7 @@ const state = reactive<UserFormData>({
 })
 
 const selectedRole = computed({
-  get: () => roleOptions.find(o => o.value === state.role) || roleOptions[2],
+  get: () => assignableRoles.value.find(o => o.value === state.role) || assignableRoles.value[0],
   set: (v) => { state.role = v?.value as 'admin' | 'moderator' | 'guest' || 'guest' }
 })
 
@@ -43,6 +39,7 @@ watch(() => props.user, (v) => {
 }, { immediate: true })
 
 function onSubmit() {
+  if (assignableRoles.value.length === 0) return
   emit('submit', { ...props.user, ...state } as UserFormData)
   emit('update:open', false)
 }
@@ -78,15 +75,22 @@ function onSubmit() {
         </UFormField>
 
         <UFormField
-          v-if="!isRoot"
+          v-if="!isRoot && assignableRoles.length"
           label="Role"
           name="role"
         >
           <USelectMenu
             v-model="selectedRole"
-            :items="roleOptions"
+            :items="assignableRoles"
           />
         </UFormField>
+
+        <div
+          v-if="assignableRoles.length === 0"
+          class="text-sm text-muted"
+        >
+          You do not have permission to assign roles.
+        </div>
 
         <div class="flex justify-end gap-2 pt-2">
           <UButton
@@ -97,6 +101,7 @@ function onSubmit() {
           <UButton
             type="submit"
             :label="isEdit ? 'Save' : 'Create'"
+            :disabled="assignableRoles.length === 0"
           />
         </div>
       </UForm>

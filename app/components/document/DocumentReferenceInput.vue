@@ -1,10 +1,13 @@
 <script setup lang="ts">
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: { _type: string, _ref: string } | undefined
   to?: Array<{ type: string }>
   dataset?: string
   name?: string
-}>()
+  readonly?: boolean
+}>(), {
+  readonly: false
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: { _type: string, _ref: string }]
@@ -59,6 +62,7 @@ const selected = computed({
     v-model="selected"
     :items="referenceOptions"
     :name="name"
+    :disabled="readonly"
     placeholder="Select reference"
   />
 </template>

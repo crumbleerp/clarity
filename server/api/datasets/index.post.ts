@@ -2,6 +2,8 @@ import { useDb } from '../../db'
 import { datasets } from '../../db/schema/datasets'
 
 export default defineEventHandler(async (event) => {
+  requireAdminOrRoot(event)
+
   const db = useDb()
   const body = await readBody<{ name?: string }>(event)
   const name = body.name?.trim().toLowerCase().replace(/\s+/g, '-')

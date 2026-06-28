@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import type { MediaAsset } from '~/types/media'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: { _type: string, asset?: { _ref: string } } | undefined
   type: 'image' | 'file'
   name?: string
   dataset?: string
-}>()
+  readonly?: boolean
+}>(), {
+  readonly: false
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: { _type: string, asset?: { _ref: string } }]
@@ -38,10 +41,7 @@ async function resolveAsset() {
     return
   }
   try {
-    // @ts-expect-error upstream route type recursion with Nuxt 4
-    const doc = await $fetch(`/api/media/${ref}`, {
-      query: { dataset: props.dataset || 'production' }
-    }) as MediaAsset
+    const doc = await $fetch<MediaAsset>(`/api/media/${ref}?dataset=${encodeURIComponent(props.dataset || 'production')}`)
     assetDoc.value = doc
   } catch {
     assetDoc.value = null
@@ -92,15 +92,15 @@ async function createAssetDocument(file: File, url: string) {
     extension: getExtension(file.name),
     size: file.size
   }
-  const result = await $fetch('/api/documents', {
+  const result = await $fetch<{ _id: string }>(`/api/documents?dataset=${encodeURIComponent(props.dataset || 'production')}`, {
     method: 'POST',
-    body,
-    query: { dataset: props.dataset || 'production' }
-  }) as { _id: string }
+    body
+  })
   return result._id
 }
 
 async function processFile(file: File) {
+  if (props.readonly) return
   if (props.type === 'image' && !file.type.startsWith('image/')) {
     toast.add({ title: 'Please select an image file', color: 'error' })
     return
@@ -111,11 +111,10 @@ async function processFile(file: File) {
     const formData = new FormData()
     formData.append('file', file)
 
-    const endpoint = '/api/upload' as string
-    const uploadResult = await $fetch(endpoint, {
+    const uploadResult = await $fetch<{ files: Array<{ url: string }> }>('/api/upload', {
       method: 'POST',
       body: formData
-    }) as { files: Array<{ url: string }> }
+    })
 
     const uploadedUrl = uploadResult.files[0]?.url
     if (!uploadedUrl) {
@@ -143,6 +142,7 @@ async function onFileChange(event: Event) {
 
 function onDrop(event: DragEvent) {
   event.preventDefault()
+  if (props.readonly) return
   dragging.value = false
   const file = event.dataTransfer?.files?.[0]
   if (!file) return
@@ -151,10 +151,12 @@ function onDrop(event: DragEvent) {
 
 function onDragOver(event: DragEvent) {
   event.preventDefault()
+  if (props.readonly) return
   dragging.value = true
 }
 
 function onDragLeave() {
+  if (props.readonly) return
   dragging.value = false
 }
 
@@ -182,31 +184,36 @@ function copyUrl() {
   toast.add({ title: 'URL copied', color: 'success' })
 }
 
-const actionItems = computed(() => [
-  [{
-    label: 'Upload',
-    icon: 'i-lucide-upload',
-    onSelect: openFilePicker
-  }, {
-    label: 'Media',
-    icon: 'i-lucide-image',
-    onSelect: () => selectOpen.value = true
-  }],
-  [{
-    label: 'Download',
-    icon: 'i-lucide-download',
-    onSelect: downloadAsset
-  }, {
-    label: 'Copy URL',
-    icon: 'i-lucide-link',
-    onSelect: copyUrl
-  }],
-  [{
-    label: 'Clear field',
-    icon: 'i-lucide-x',
-    onSelect: clearAsset
-  }]
-])
+const actionItems = computed(() => {
+  const items = [
+    [{
+      label: 'Download',
+      icon: 'i-lucide-download',
+      onSelect: downloadAsset
+    }, {
+      label: 'Copy URL',
+      icon: 'i-lucide-link',
+      onSelect: copyUrl
+    }]
+  ]
+  if (!props.readonly) {
+    items.unshift([{
+      label: 'Upload',
+      icon: 'i-lucide-upload',
+      onSelect: openFilePicker
+    }, {
+      label: 'Media',
+      icon: 'i-lucide-image',
+      onSelect: () => selectOpen.value = true
+    }])
+    items.push([{
+      label: 'Clear field',
+      icon: 'i-lucide-x',
+      onSelect: clearAsset
+    }])
+  }
+  return items
+})
 </script>
 
 <template>
@@ -224,9 +231,12 @@ const actionItems = computed(() => [
         class="size-8 mx-auto text-muted mb-2"
       />
       <div class="text-sm text-muted mb-3">
-        Drag or paste {{ type === 'image' ? 'image' : 'file' }} here
+        {{ readonly ? 'No asset selected' : `Drag or paste ${type === 'image' ? 'image' : 'file'} here` }}
       </div>
-      <div class="flex items-center justify-center gap-2">
+      <div
+        v-if="!readonly"
+        class="flex items-center justify-center gap-2"
+      >
         <UButton
           label="Upload"
           icon="i-lucide-upload"
@@ -276,7 +286,10 @@ const actionItems = computed(() => [
           </div>
         </div>
 
-        <div class="absolute top-2 end-2 opacity-0 group-hover:opacity-100 transition">
+        <div
+          v-if="!readonly"
+          class="absolute top-2 end-2 opacity-0 group-hover:opacity-100 transition"
+        >
           <UDropdownMenu
             :items="actionItems"
             :content="{ align: 'end' }"

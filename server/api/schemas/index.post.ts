@@ -1,6 +1,8 @@
 import { upsertSchema } from '../../services/schema'
+import { requireModeratorOrAbove } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  requireModeratorOrAbove(event)
   const body = await readBody(event)
 
   if (!Array.isArray(body)) {

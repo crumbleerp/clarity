@@ -3,6 +3,13 @@ definePageMeta({ middleware: 'auth' })
 
 const toast = useToast()
 const { trackJob, runningJobs } = useJobs()
+const { isGuest, canImport, canWriteDocuments, canManageUsers, canManageTokens, canManageOrigins, canTruncate, canCreateDatasets } = usePermissions()
+
+watchEffect(() => {
+  if (isGuest.value) {
+    navigateTo('/dashboard/documents')
+  }
+})
 
 const importState = reactive({
   projectId: '',
@@ -19,18 +26,20 @@ const editingUser = ref<{ id: string, username: string, password: string, role: 
 const tokenModalOpen = ref(false)
 const createdToken = ref<string | null>(null)
 
-const { user: authUser } = useAuth()
-const allowRootToken = computed(() => authUser.value?.role === 'root')
+const originModalOpen = ref(false)
 
 const { data: users, refresh: refreshUsers } = await useFetch('/api/users')
 const { data: accessTokens, refresh: refreshAccessTokens } = await useFetch('/api/access-tokens')
+const { data: allowedOrigins, refresh: refreshAllowedOrigins } = await useFetch('/api/allowed-origins')
 
-const sections = [
+const visibleSections = computed(() => [
   { id: 'import', label: 'Import' },
-  { id: 'users', label: 'Users' },
-  { id: 'access-tokens', label: 'Access Tokens' },
-  { id: 'danger', label: 'Danger Zone' }
-]
+  ...(canImport.value ? [{ id: 'export', label: 'Export' }] : []),
+  ...(canManageUsers.value ? [{ id: 'users', label: 'Users' }] : []),
+  ...(canManageTokens.value ? [{ id: 'access-tokens', label: 'Access Tokens' }] : []),
+  ...(canManageOrigins.value ? [{ id: 'origins', label: 'Origins' }] : []),
+  ...(canTruncate.value || canWriteDocuments.value ? [{ id: 'danger', label: 'Danger Zone' }] : [])
+])
 
 const activeSection = ref('import')
 
@@ -50,10 +59,10 @@ async function onImportSubmit() {
 
   importing.value = true
   try {
-    const result = await $fetch('/api/import/sanity', {
+    const result = await $fetch<{ jobId: string }>('/api/import/sanity', {
       method: 'POST',
       body: importState
-    }) as { jobId: string }
+    })
 
     trackJob(result.jobId)
     toast.add({ title: 'Import started', description: `Job ${result.jobId}`, color: 'info' })
@@ -102,14 +111,14 @@ async function saveUser(data: { id?: string, username: string, password: string,
 
 async function saveAccessToken(data: { name: string, role: string, expiresAt: string }) {
   try {
-    const result = await $fetch('/api/access-tokens', {
+    const result = await $fetch<{ token: string }>('/api/access-tokens', {
       method: 'POST',
       body: {
         name: data.name,
         role: data.role,
         expiresAt: data.expiresAt || undefined
       }
-    }) as { token: string }
+    })
     createdToken.value = result.token
     await refreshAccessTokens()
     toast.add({ title: 'Access token created', color: 'success' })
@@ -134,6 +143,29 @@ function copyToken() {
   toast.add({ title: 'Token copied', color: 'success' })
 }
 
+async function saveAllowedOrigin(origin: string) {
+  try {
+    await $fetch('/api/allowed-origins', {
+      method: 'POST',
+      body: { origin }
+    })
+    await refreshAllowedOrigins()
+    toast.add({ title: 'Origin added', color: 'success' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
+  }
+}
+
+async function deleteAllowedOrigin(id: string) {
+  try {
+    await $fetch(`/api/allowed-origins/${id}`, { method: 'DELETE' })
+    await refreshAllowedOrigins()
+    toast.add({ title: 'Origin deleted', color: 'success' })
+  } catch (e: unknown) {
+    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
+  }
+}
+
 async function truncateData() {
   try {
     await $fetch('/api/admin/truncate', { method: 'POST' })
@@ -155,7 +187,7 @@ onMounted(() => {
     { rootMargin: '-20% 0px -60% 0px' }
   )
 
-  for (const section of sections) {
+  for (const section of visibleSections.value) {
     const el = document.getElementById(section.id)
     if (el) observer.observe(el)
   }
@@ -177,7 +209,7 @@ useHead({ title: 'Settings' })
             </h1>
             <nav class="flex flex-col gap-1">
               <UButton
-                v-for="section in sections"
+                v-for="section in visibleSections"
                 :key="section.id"
                 :variant="activeSection === section.id ? 'subtle' : 'ghost'"
                 :color="activeSection === section.id ? 'secondary' : 'neutral'"
@@ -233,7 +265,7 @@ useHead({ title: 'Settings' })
                   class="space-y-4"
                   @submit="onImportSubmit"
                 >
-                  <div class="grid grid-cols-2 gap-4 p-4">
+                  <div class="grid grid-cols-2 gap-4">
                     <UFormField
                       label="Project ID"
                       name="projectId"
@@ -280,7 +312,10 @@ useHead({ title: 'Settings' })
                       name="targetDataset"
                       class="col-span-2"
                     >
-                      <DatasetSelector v-model="importState.targetDataset" />
+                      <DatasetSelector
+                        v-model="importState.targetDataset"
+                        :allow-create="canCreateDatasets"
+                      />
                     </UFormField>
                   </div>
                 </UForm>
@@ -336,20 +371,21 @@ useHead({ title: 'Settings' })
             </div>
           </section>
           <section
+            v-if="canImport"
+            id="export"
             class="scroll-mt-10"
           >
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold">
-                Import manually from schema
+                Export
               </h2>
             </div>
 
-            <div class="relative">
-              <SchemaImporter />
-            </div>
+            <ExportSection />
           </section>
           <!-- Users -->
           <section
+            v-if="canManageUsers"
             id="users"
             class="scroll-mt-10"
           >
@@ -358,6 +394,7 @@ useHead({ title: 'Settings' })
                 Users
               </h2>
               <UButton
+                v-if="canManageUsers"
                 color="secondary"
                 label="New User"
                 icon="i-lucide-plus"
@@ -398,6 +435,7 @@ useHead({ title: 'Settings' })
 
           <!-- Access Tokens -->
           <section
+            v-if="canManageTokens"
             id="access-tokens"
             class="scroll-mt-10"
           >
@@ -406,6 +444,7 @@ useHead({ title: 'Settings' })
                 Access Tokens
               </h2>
               <UButton
+                v-if="canManageTokens"
                 color="secondary"
                 label="New Token"
                 icon="i-lucide-plus"
@@ -451,8 +490,59 @@ useHead({ title: 'Settings' })
             </UCard>
           </section>
 
+          <!-- Origins -->
+          <section
+            v-if="canManageOrigins"
+            id="origins"
+            class="scroll-mt-10"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold">
+                Allowed Origins
+              </h2>
+              <UButton
+                v-if="canManageOrigins"
+                color="secondary"
+                label="New Origin"
+                icon="i-lucide-plus"
+                size="sm"
+                @click="originModalOpen = true"
+              />
+            </div>
+
+            <UCard
+              variant="outline"
+              class="overflow-hidden"
+              :ui="{ body: 'p-0!' }"
+            >
+              <UTable
+                :data="allowedOrigins || []"
+                :columns="[
+                  { accessorKey: 'origin', header: 'Origin' },
+                  { accessorKey: 'createdAt', header: 'Created' },
+                  { id: 'actions', header: 'Actions' }
+                ]"
+              >
+                <template #createdAt-cell="{ row }">
+                  {{ new Date(row.original.createdAt).toLocaleDateString() }}
+                </template>
+
+                <template #actions-cell="{ row }">
+                  <UButton
+                    icon="i-lucide-trash-2"
+                    size="xs"
+                    variant="ghost"
+                    color="error"
+                    @click="deleteAllowedOrigin(row.original.id)"
+                  />
+                </template>
+              </UTable>
+            </UCard>
+          </section>
+
           <!-- Danger Zone -->
           <section
+            v-if="canTruncate || canWriteDocuments"
             id="danger"
             class="scroll-mt-10"
           >
@@ -460,11 +550,17 @@ useHead({ title: 'Settings' })
               Danger Zone
             </h2>
 
+            <TrashManager
+              v-if="canWriteDocuments"
+              class="mb-4"
+            />
+
             <UCard
+              v-if="canTruncate"
               variant="outline"
               class="border-error/50"
             >
-              <div class="flex items-start justify-between gap-4 p-4">
+              <div class="flex items-start justify-between gap-4">
                 <div>
                   <h3 class="font-medium">
                     Truncate all data
@@ -494,7 +590,6 @@ useHead({ title: 'Settings' })
 
       <AccessTokenFormModal
         v-model:open="tokenModalOpen"
-        :allow-root="allowRootToken"
         @submit="saveAccessToken"
       />
 
@@ -521,6 +616,11 @@ useHead({ title: 'Settings' })
           </div>
         </template>
       </UModal>
+
+      <AllowedOriginFormModal
+        v-model:open="originModalOpen"
+        @submit="saveAllowedOrigin"
+      />
     </div>
   </div>
 </template>

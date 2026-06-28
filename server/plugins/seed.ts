@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb } from '../db'
 import { users } from '../db/schema/users'
 import { datasets } from '../db/schema/datasets'
+import { logger } from '../utils/logger'
 
 export default defineNitroPlugin(async () => {
   const config = useRuntimeConfig()
@@ -18,7 +19,7 @@ export default defineNitroPlugin(async () => {
       password,
       role: 'root'
     })
-    console.log(`[clarity] Root user "${username}" created`)
+    logger.info(`Root user "${username}" created`)
   }
 
   try {

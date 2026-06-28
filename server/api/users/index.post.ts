@@ -2,11 +2,15 @@ import { useDb } from '../../db'
 import { users } from '../../db/schema/users'
 
 export default defineEventHandler(async (event) => {
-  requireRoot(event)
+  const current = requireAdminOrRoot(event)
 
   const body = await readBody(event)
   if (!body.username || !body.password || !body.role) {
     throw createError({ statusCode: 400, message: 'username, password and role required' })
+  }
+
+  if (!canCreateUser(current, body.role)) {
+    throw createError({ statusCode: 403, message: 'Forbidden' })
   }
 
   const db = useDb()

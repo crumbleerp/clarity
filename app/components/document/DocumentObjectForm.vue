@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { FieldDef } from '../SchemaFormField.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: Record<string, unknown> | undefined
   fields: FieldDef[]
   dataset?: string
-}>()
+  readonly?: boolean
+}>(), {
+  readonly: false
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: Record<string, unknown>]
@@ -29,6 +32,7 @@ function updateField(name: string, value: unknown) {
       :field="field"
       :model-value="data[field.name]"
       :dataset="dataset"
+      :readonly="readonly"
       @update:model-value="(v: unknown) => updateField(field.name, v)"
     />
   </div>

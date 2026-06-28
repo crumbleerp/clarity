@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { useDb } from '../../../../db'
 import { documents } from '../../../../db/schema/documents'
 import { invalidateCache } from '../../../../services/cache'
+import { requireModeratorOrAbove } from '../../../../utils/auth'
 
 interface Mutation {
   create?: Record<string, unknown>
@@ -12,6 +13,8 @@ interface Mutation {
 }
 
 export default defineEventHandler(async (event) => {
+  requireModeratorOrAbove(event)
+
   const dataset = getRouterParam(event, 'dataset')
   const body = await readBody(event)
 

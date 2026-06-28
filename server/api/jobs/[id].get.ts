@@ -1,6 +1,8 @@
 import { getJob } from '../../services/jobs'
 
 export default defineEventHandler(async (event) => {
+  requireAdminOrRoot(event)
+
   const id = getRouterParam(event, 'id')
   if (!id) {
     throw createError({ statusCode: 400, message: 'Job ID required' })

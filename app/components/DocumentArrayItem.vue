@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import type { FieldDef } from './SchemaFormField.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   field: FieldDef
   modelValue: unknown
   dataset?: string
   hideLabel?: boolean
-}>()
+  readonly?: boolean
+}>(), {
+  readonly: false
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: unknown]
@@ -86,6 +89,7 @@ function previewSubtitle(): string {
       :model-value="modelValue"
       :dataset="dataset"
       :hide-label="shouldHideLabel"
+      :readonly="readonly"
       @update:model-value="v => emit('update:modelValue', v)"
     />
   </div>
@@ -123,6 +127,7 @@ function previewSubtitle(): string {
         v-model="item"
         :fields="field.fields!"
         :dataset="dataset"
+        :readonly="readonly"
       />
     </template>
   </USlideover>
