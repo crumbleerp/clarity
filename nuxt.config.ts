@@ -47,6 +47,15 @@ export default defineNuxtConfig({
     }
   },
 
+  vite: {
+    build: {
+      sourcemap: false,
+      rollupOptions: {
+        maxParallelFileOps: 5
+      }
+    }
+  },
+
   eslint: {
     config: {
       stylistic: {
