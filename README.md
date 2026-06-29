@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/crumbleerp/clarity/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <a href="https://hub.docker.com/r/crumbleerp/clarity"><img src="https://img.shields.io/docker/pulls/crumbleerp/clarity?label=docker%20pulls" alt="Docker Pulls"></a>
-  <a href="https://www.npmjs.com/package/@crumbleerp/clarity"><img src="https://img.shields.io/npm/v/@crumbleerp/clarity" alt="npm"></a>
+  <a href="https://github.com/crumbleerp/clarity/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+  <a href="https://hub.docker.com/r/crumbleerp/clarity"><img src="https://img.shields.io/docker/pulls/crumbleerp/clarity?label=docker%20pulls"></a>
+  <a href="https://www.npmjs.com/package/@crumbleerp/clarity"><img src="https://img.shields.io/npm/v/@crumbleerp/clarity"></a>
 </p>
 
 ---
