@@ -4,6 +4,7 @@ import { documents } from '../../db/schema/documents'
 import { mergeDocument } from '../../utils/merge'
 import { invalidateCache } from '../../services/cache'
 import { requireModeratorOrAbove } from '../../utils/auth'
+import { ensureFileTagDocuments } from '../../services/system'
 
 const ASSET_TYPES = ['sanity.imageAsset', 'sanity.fileAsset']
 
@@ -42,6 +43,29 @@ export default defineEventHandler(async (event) => {
     .set({ data, updatedAt: new Date(), rev: crypto.randomUUID() })
     .where(and(eq(documents.id, id), eq(documents.dataset, dataset)))
     .returning()
+
+  if (tags !== undefined && Array.isArray(tags)) {
+    const assetData = data as Record<string, unknown>
+    const assetId = assetData.assetId as string | undefined
+    if (assetId) {
+      await ensureFileTagDocuments(dataset, tags as string[])
+      const clarityFileId = `${assetId}-file`
+      const clarityFile = await db.select().from(documents)
+        .where(and(eq(documents.id, clarityFileId), eq(documents.dataset, dataset)))
+        .limit(1)
+
+      if (clarityFile.length > 0) {
+        const clarityData = clarityFile[0]!.data as Record<string, unknown>
+        await db.update(documents)
+          .set({
+            data: { ...clarityData, tags },
+            updatedAt: new Date(),
+            rev: crypto.randomUUID()
+          })
+          .where(and(eq(documents.id, clarityFileId), eq(documents.dataset, dataset)))
+      }
+    }
+  }
 
   invalidateCache(dataset)
   return mergeDocument(rows[0]!)

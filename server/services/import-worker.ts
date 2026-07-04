@@ -16,6 +16,7 @@ import { uploadToS3 } from '../utils/s3'
 import { updateJob, addJobLog } from './jobs'
 import { invalidateCache } from './cache'
 import { logger } from '../utils/logger'
+import { createClarityFileDocument } from './system'
 
 const ASSET_CONCURRENCY = 10
 
@@ -141,6 +142,46 @@ export async function runImportJob(jobId: string, config: ImportConfig) {
           updatedAt: new Date(mapped.updatedAt),
           data: mapped.data
         })
+      }
+
+      const assetId = mapped.data.assetId as string | undefined
+      const extension = mapped.data.extension as string | undefined
+      const mimeType = mapped.data.mimeType as string | undefined
+      const originalFilename = mapped.data.originalFilename as string | undefined
+      const path = mapped.data.path as string | undefined
+      const size = mapped.data.size as number | undefined
+      const metadata = mapped.data.metadata as Record<string, unknown> | undefined
+
+      const rawTags = asset.tags
+      const tags: string[] = []
+      if (Array.isArray(rawTags)) {
+        for (const t of rawTags) {
+          if (typeof t === 'string') {
+            tags.push(t)
+          } else if (typeof t === 'object' && t !== null && typeof (t as Record<string, unknown>).label === 'string') {
+            tags.push(String((t as Record<string, unknown>).label))
+          }
+        }
+      }
+
+      if (assetId && extension && mimeType && originalFilename && path && typeof size === 'number') {
+        try {
+          await createClarityFileDocument(datasetName, {
+            assetId,
+            originalFilename,
+            mimeType,
+            extension,
+            size,
+            path,
+            url: localUrl,
+            tags: tags.length > 0 ? tags : undefined,
+            metadata
+          })
+        } catch (e: unknown) {
+          const msg = `Failed to create _clarity.file for ${id}: ${(e as Error).message}`
+          await addJobLog(jobId, msg)
+          logger.warn({ assetId, error: e }, msg)
+        }
       }
     }
 

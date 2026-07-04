@@ -22,8 +22,14 @@ export default defineNitroPlugin(async () => {
     logger.info(`Root user "${username}" created`)
   }
 
+  const defaultDataset = (config.public?.dataset as string | undefined) || 'production'
+
   try {
-    await db.insert(datasets).values({ name: 'production' }).onConflictDoNothing()
+    const existingDatasets = await db.select({ name: datasets.name }).from(datasets).limit(1)
+    if (existingDatasets.length === 0) {
+      await db.insert(datasets).values({ name: defaultDataset }).onConflictDoNothing()
+      logger.info(`Default dataset "${defaultDataset}" created`)
+    }
   } catch {
     // datasets table may not exist yet during prerender
   }

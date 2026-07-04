@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
   const includeDeleted = query.includeDeleted === 'true'
   const includeRevisions = query.includeRevisions === 'true'
   const includeArchived = query.includeArchived === 'true'
+  const includeSystem = query.includeSystem === 'true'
   const orderBy = (query.orderBy as string) || 'updatedAt'
   const orderDir = (query.orderDir as string) || 'desc'
   const requestedLimit = Number(query.limit)
@@ -41,6 +42,7 @@ export default defineEventHandler(async (event) => {
   if (!includeArchived) conditions.push(sql`${documents.status} in ('draft', 'published')`)
   if (!includeDeleted) conditions.push(isNull(documents.deletedAt))
   if (!includeRevisions) conditions.push(eq(documents.isRevision, false))
+  if (!includeSystem) conditions.push(sql`${documents.type} not like '_clarity.%'`)
 
   if (search.trim()) {
     const term = `%${search.trim().toLowerCase()}%`

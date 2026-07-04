@@ -1,4 +1,10 @@
 <script setup lang="ts">
+export interface FieldValidationRule {
+  type: 'required' | 'min' | 'max' | 'pattern' | 'email' | 'url'
+  value?: number | string
+  message?: string
+}
+
 export interface FieldDef {
   name: string
   title?: string
@@ -8,7 +14,7 @@ export interface FieldDef {
   fields?: FieldDef[]
   of?: FieldDef[]
   to?: Array<{ type: string }>
-  validation?: unknown
+  validation?: FieldValidationRule[]
 }
 
 const props = withDefaults(defineProps<{
@@ -17,8 +23,10 @@ const props = withDefaults(defineProps<{
   dataset?: string
   hideLabel?: boolean
   readonly?: boolean
+  errors?: ValidationError[]
 }>(), {
-  readonly: false
+  readonly: false,
+  errors: () => []
 })
 
 const emit = defineEmits<{
@@ -32,10 +40,26 @@ const value = computed({
 
 const UFormFieldComponent = resolveComponent('UFormField')
 
+const isRequired = computed(() => {
+  const validation = props.field.validation
+  return Array.isArray(validation) && validation.some(rule => rule.type === 'required')
+})
+
+const fieldError = computed(() => {
+  const err = props.errors?.find(e => e.field === props.field.name)
+  return err?.message
+})
+
 const wrapper = computed(() => props.hideLabel ? 'div' : UFormFieldComponent)
 const wrapperProps = computed(() => props.hideLabel
   ? {}
-  : { label: props.field.title || props.field.name, name: props.field.name, description: props.field.description }
+  : {
+      label: props.field.title || props.field.name,
+      name: props.field.name,
+      description: props.field.description,
+      required: isRequired.value,
+      error: fieldError.value
+    }
 )
 
 function typedValue<T>() {
@@ -54,6 +78,27 @@ const valueAsset = typedValue<{ _type: string, asset?: { _ref: string } } | unde
 const valueObject = typedValue<Record<string, unknown>>()
 
 const isArrayField = computed(() => props.field.type === 'array' || Array.isArray(props.field.of))
+
+function getChildErrors(): ValidationError[] {
+  if (!props.errors) return []
+  const prefix = `${props.field.name}.`
+  return props.errors
+    .filter(e => e.field.startsWith(prefix))
+    .map(e => ({ ...e, field: e.field.slice(prefix.length) }))
+}
+
+function getArrayItemErrors(index: number): ValidationError[] {
+  if (!props.errors) return []
+  const prefix = `${props.field.name}[${index}].`
+  return props.errors
+    .filter(e => e.field.startsWith(prefix))
+    .map(e => ({ ...e, field: e.field.slice(prefix.length) }))
+}
+
+function getArrayItemFieldErrors(index: number): ValidationError[] {
+  if (!props.errors) return []
+  return props.errors.filter(e => e.field === `${props.field.name}[${index}]`)
+}
 
 function pickInputType() {
   switch (props.field.type) {
@@ -239,6 +284,7 @@ function updateArrayItem(index: number, v: unknown) {
               :model-value="item"
               :dataset="dataset"
               :readonly="readonly"
+              :errors="getArrayItemFieldErrors(idx).concat(getArrayItemErrors(idx))"
               @update:model-value="v => updateArrayItem(idx, v)"
             />
           </div>
@@ -276,6 +322,7 @@ function updateArrayItem(index: number, v: unknown) {
           :fields="field.fields"
           :dataset="dataset"
           :readonly="readonly"
+          :errors="getChildErrors()"
         />
       </UCard>
     </component>

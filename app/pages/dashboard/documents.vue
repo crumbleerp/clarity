@@ -3,6 +3,7 @@ import { nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import type { NavigationMenuItem } from '@nuxt/ui'
 import type { FieldDef } from '~/components/SchemaFormField.vue'
+import { validateDocumentData, type ValidationError } from '~/utils/validation'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -99,6 +100,7 @@ const showJson = ref(false)
 const jsonInput = ref('')
 const status = ref<'draft' | 'published' | 'archived'>('published')
 const publishedAt = ref<string | null>(null)
+const formErrors = ref<ValidationError[]>([])
 
 watch(selectedDoc, (doc) => {
   if (doc) {
@@ -217,6 +219,7 @@ async function putDocument(id: string, body: Record<string, unknown>) {
 async function autosaveDocument() {
   const id = selectedId.value
   if (!id || !canWriteDocuments.value) return
+  if (!validateForm()) return
   try {
     const base = showJson.value ? JSON.parse(jsonInput.value) : itemData.value
     await putDocument(id, {
@@ -233,9 +236,27 @@ async function autosaveDocument() {
   }
 }
 
+function validateForm(): boolean {
+  formErrors.value = []
+  if (!selectedSchema.value?.fields) return true
+  const base = showJson.value ? JSON.parse(jsonInput.value) : itemData.value
+  const errors = validateDocumentData(base, selectedSchema.value.fields as FieldDef[])
+  formErrors.value = errors
+  if (errors.length > 0) {
+    toast.add({
+      title: 'Validation failed',
+      description: errors.map(e => e.message).join('; '),
+      color: 'error'
+    })
+    return false
+  }
+  return true
+}
+
 async function publishDocument() {
   const id = selectedId.value
   if (!id || !canWriteDocuments.value) return
+  if (!validateForm()) return
   try {
     const base = showJson.value ? JSON.parse(jsonInput.value) : itemData.value
     await putDocument(id, {
@@ -251,24 +272,36 @@ async function publishDocument() {
   }
 }
 
-async function archiveDocument(id: string) {
-  try {
-    await putDocument(id, { _status: 'archived' })
-    toast.add({ title: 'Document archived', color: 'success' })
-    if (selectedId.value === id) selectedId.value = undefined
-    await refreshDocs()
-  } catch (e: unknown) {
-    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
-  }
+function archiveDocument(id: string) {
+  openConfirm({
+    title: 'Archive document',
+    description: 'Are you sure you want to archive this document?',
+    confirmLabel: 'Archive',
+    confirmColor: 'warning',
+    onConfirm: async () => {
+      await putDocument(id, { _status: 'archived' })
+      toast.add({ title: 'Document archived', color: 'success' })
+      if (selectedId.value === id) selectedId.value = undefined
+      await refreshDocs()
+    }
+  })
 }
 
-async function deleteDocument(id: string) {
-  await $fetch(`/api/documents/${id}?dataset=${encodeURIComponent(currentDataset.value)}`, {
-    method: 'DELETE'
+function deleteDocument(id: string) {
+  openConfirm({
+    title: 'Delete document',
+    description: 'Are you sure you want to delete this document? It will be moved to trash.',
+    confirmLabel: 'Delete',
+    confirmColor: 'error',
+    onConfirm: async () => {
+      await $fetch(`/api/documents/${id}?dataset=${encodeURIComponent(currentDataset.value)}`, {
+        method: 'DELETE'
+      })
+      toast.add({ title: 'Document deleted', color: 'success' })
+      if (selectedId.value === id) selectedId.value = undefined
+      await refreshDocs()
+    }
   })
-  toast.add({ title: 'Document deleted', color: 'success' })
-  if (selectedId.value === id) selectedId.value = undefined
-  await refreshDocs()
 }
 
 const scrollElementRef = ref<HTMLElement | null>(null)
@@ -321,7 +354,7 @@ async function loadRevisions() {
   }
 }
 
-async function restoreRevision(rev: Record<string, unknown>) {
+function restoreRevision(rev: Record<string, unknown>) {
   const id = selectedId.value
   if (!id) return
   const {
@@ -329,18 +362,27 @@ async function restoreRevision(rev: Record<string, unknown>) {
     _isRevision, _revisionOf, _deletedAt, _status, _publishedAt,
     ...data
   } = rev
-  try {
-    await putDocument(id, {
-      _status,
-      _publishedAt,
-      ...data
-    })
-    toast.add({ title: 'Revision restored', color: 'success' })
-    historyOpen.value = false
-    await refreshDocs()
-  } catch (e: unknown) {
-    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
-  }
+  openConfirm({
+    title: 'Restore revision',
+    description: 'Are you sure you want to restore this revision? Current document will be overwritten.',
+    confirmLabel: 'Restore',
+    confirmColor: 'warning',
+    onConfirm: async () => {
+      await putDocument(id, {
+        _status,
+        _publishedAt,
+        ...data
+      })
+      toast.add({ title: 'Revision restored', color: 'success' })
+      historyOpen.value = false
+      await refreshDocs()
+    }
+  })
+}
+
+function onSchemaDeleted() {
+  selectedSchemaForEdit.value = null
+  refreshSchemas()
 }
 
 let autosaveTimeout: ReturnType<typeof setTimeout> | null = null
@@ -407,7 +449,7 @@ const viewTabItems: NavigationMenuItem[] = [
 ]
 
 const typeNavItems = computed<NavigationMenuItem[]>(() => {
-  return (schemas.value || []).map((schema) => {
+  return (schemas.value || []).filter(schema => !String(schema.name).startsWith('_clarity')).map((schema) => {
     const name = String(schema.name)
     const isActive = viewMode.value === 'documents'
       ? selectedType.value === name
@@ -431,6 +473,42 @@ const typeNavItems = computed<NavigationMenuItem[]>(() => {
 
 const showCreateTypeModal = ref(false)
 const newType = ref({ name: '', title: '' })
+
+const confirmState = ref<{
+  open: boolean
+  title: string
+  description: string
+  confirmLabel: string
+  confirmColor: 'primary' | 'error' | 'warning'
+  onConfirm: () => void | Promise<void>
+  loading: boolean
+}>({
+  open: false,
+  title: '',
+  description: '',
+  confirmLabel: 'Confirm',
+  confirmColor: 'primary',
+  onConfirm: () => {},
+  loading: false
+})
+
+function openConfirm(options: Omit<typeof confirmState.value, 'open' | 'loading' | 'onConfirm'> & { onConfirm: () => void | Promise<void> }) {
+  confirmState.value = {
+    ...options,
+    open: true,
+    loading: false
+  }
+}
+
+async function onConfirmAction() {
+  confirmState.value.loading = true
+  try {
+    await confirmState.value.onConfirm()
+    confirmState.value.open = false
+  } finally {
+    confirmState.value.loading = false
+  }
+}
 </script>
 
 <template>
@@ -583,6 +661,7 @@ const newType = ref({ name: '', title: '' })
           :dataset="currentDataset"
           :readonly="!canWriteDocuments"
           @save="refreshSchemas()"
+          @delete="onSchemaDeleted"
         />
       </template>
 
@@ -637,6 +716,7 @@ const newType = ref({ name: '', title: '' })
               :fields="schemaFields"
               :dataset="currentDataset"
               :readonly="!canWriteDocuments"
+              :errors="formErrors"
               @update:model-value="onItemDataChange"
             />
           </div>
@@ -725,6 +805,16 @@ const newType = ref({ name: '', title: '' })
         </div>
       </template>
     </UModal>
+
+    <ConfirmModal
+      v-model:open="confirmState.open"
+      :title="confirmState.title"
+      :description="confirmState.description"
+      :confirm-label="confirmState.confirmLabel"
+      :confirm-color="confirmState.confirmColor"
+      :loading="confirmState.loading"
+      @confirm="onConfirmAction"
+    />
 
     <UModal
       :open="showCreateTypeModal"

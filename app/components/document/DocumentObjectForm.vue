@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import type { FieldDef } from '../SchemaFormField.vue'
+import type { FieldDef, ValidationError } from '~/utils/validation'
 
 const props = withDefaults(defineProps<{
   modelValue: Record<string, unknown> | undefined
   fields: FieldDef[]
   dataset?: string
   readonly?: boolean
+  errors?: ValidationError[]
 }>(), {
-  readonly: false
+  readonly: false,
+  errors: () => []
 })
 
 const emit = defineEmits<{
@@ -22,6 +24,10 @@ const data = computed({
 function updateField(name: string, value: unknown) {
   data.value = { ...data.value, [name]: value }
 }
+
+function getFieldErrors(field: FieldDef): ValidationError[] {
+  return props.errors?.filter(e => e.field === field.name) ?? []
+}
 </script>
 
 <template>
@@ -33,6 +39,7 @@ function updateField(name: string, value: unknown) {
       :model-value="data[field.name]"
       :dataset="dataset"
       :readonly="readonly"
+      :errors="getFieldErrors(field)"
       @update:model-value="(v: unknown) => updateField(field.name, v)"
     />
   </div>

@@ -7,8 +7,10 @@ const props = withDefaults(defineProps<{
   dataset?: string
   hideLabel?: boolean
   readonly?: boolean
+  errors?: ValidationError[]
 }>(), {
-  readonly: false
+  readonly: false,
+  errors: () => []
 })
 
 const emit = defineEmits<{
@@ -90,6 +92,7 @@ function previewSubtitle(): string {
       :dataset="dataset"
       :hide-label="shouldHideLabel"
       :readonly="readonly"
+      :errors="errors"
       @update:model-value="v => emit('update:modelValue', v)"
     />
   </div>
@@ -128,6 +131,7 @@ function previewSubtitle(): string {
         :fields="field.fields!"
         :dataset="dataset"
         :readonly="readonly"
+        :errors="errors"
       />
     </template>
   </USlideover>

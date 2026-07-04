@@ -16,6 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const currentDataset = useCurrentDataset()
 
 const isOpen = computed({
   get: () => props.open,
@@ -28,15 +29,31 @@ const filename = ref('')
 const title = ref('')
 const altText = ref('')
 const description = ref('')
-const tags = ref('')
+const tags = ref<string[]>([])
+const newTag = ref('')
 
 watch(() => props.asset, (asset) => {
   filename.value = asset?.originalFilename || ''
   title.value = asset?.title || ''
   altText.value = asset?.altText || ''
   description.value = asset?.description || ''
-  tags.value = Array.isArray(asset?.tags) ? asset.tags.join(', ') : ''
+  tags.value = Array.isArray(asset?.tags) ? asset.tags as string[] : []
 }, { immediate: true })
+
+const { data: tagDocs } = await useFetch<{ documents: Array<Record<string, unknown>> }>('/api/documents', {
+  query: computed(() => ({
+    dataset: currentDataset.value,
+    type: '_clarity.file_tags',
+    includeSystem: 'true',
+    limit: 1000
+  }))
+})
+
+const availableTags = computed(() => {
+  const list = (tagDocs.value?.documents || []).map(doc => String(doc.name || doc.title || doc._id))
+  const set = new Set([...list, ...tags.value])
+  return Array.from(set).sort()
+})
 
 const sizeLabel = computed(() => {
   const bytes = props.asset?.size
@@ -64,13 +81,22 @@ function downloadAsset() {
   a.click()
 }
 
+function addNewTag() {
+  const value = newTag.value.trim()
+  if (!value) return
+  if (!tags.value.includes(value)) {
+    tags.value = [...tags.value, value]
+  }
+  newTag.value = ''
+}
+
 function onSave() {
   emit('save', {
     originalFilename: filename.value,
     title: title.value,
     altText: altText.value,
     description: description.value,
-    tags: tags.value.split(',').map(t => t.trim()).filter(Boolean)
+    tags: tags.value
   })
 }
 
@@ -175,12 +201,31 @@ function onDelete() {
         <!-- Details form -->
         <div class="space-y-4">
           <UFormField label="Tags">
-            <UInput
+            <USelect
               v-model="tags"
+              :items="availableTags"
               :disabled="readonly"
-              placeholder="Enter tags separated by commas"
+              multiple
+              placeholder="Select tags"
               class="w-full"
             />
+            <div
+              v-if="!readonly"
+              class="flex items-center gap-2 mt-2"
+            >
+              <UInput
+                v-model="newTag"
+                placeholder="New tag"
+                class="flex-1"
+                @keydown.enter.prevent="addNewTag"
+              />
+              <UButton
+                size="sm"
+                @click="addNewTag"
+              >
+                Add
+              </UButton>
+            </div>
           </UFormField>
 
           <UFormField label="Filename">

@@ -6,6 +6,42 @@ const { data: trashed, refresh } = await useFetch('/api/documents/trash', {
   query: computed(() => ({ dataset: currentDataset.value }))
 })
 
+const confirmState = ref<{
+  open: boolean
+  title: string
+  description: string
+  confirmLabel: string
+  confirmColor: 'primary' | 'error' | 'warning'
+  onConfirm: () => void | Promise<void>
+  loading: boolean
+}>({
+  open: false,
+  title: '',
+  description: '',
+  confirmLabel: 'Confirm',
+  confirmColor: 'primary',
+  onConfirm: () => {},
+  loading: false
+})
+
+function openConfirm(options: Omit<typeof confirmState.value, 'open' | 'loading' | 'onConfirm'> & { onConfirm: () => void | Promise<void> }) {
+  confirmState.value = {
+    ...options,
+    open: true,
+    loading: false
+  }
+}
+
+async function onConfirmAction() {
+  confirmState.value.loading = true
+  try {
+    await confirmState.value.onConfirm()
+    confirmState.value.open = false
+  } finally {
+    confirmState.value.loading = false
+  }
+}
+
 async function restore(id: string) {
   try {
     await $fetch(`/api/documents/${id}/restore`, {
@@ -19,22 +55,29 @@ async function restore(id: string) {
   }
 }
 
-async function emptyTrash() {
-  try {
-    await $fetch('/api/documents/trash', {
-      method: 'DELETE',
-      query: { dataset: currentDataset.value }
-    })
-    toast.add({ title: 'Trash emptied', color: 'success' })
-    await refresh()
-  } catch (e: unknown) {
-    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
-  }
+function emptyTrash() {
+  openConfirm({
+    title: 'Empty trash',
+    description: 'Are you sure you want to permanently delete all documents in trash? This cannot be undone.',
+    confirmLabel: 'Empty trash',
+    confirmColor: 'error',
+    onConfirm: async () => {
+      await $fetch('/api/documents/trash', {
+        method: 'DELETE',
+        query: { dataset: currentDataset.value }
+      })
+      toast.add({ title: 'Trash emptied', color: 'success' })
+      await refresh()
+    }
+  })
 }
 </script>
 
 <template>
-  <UCard variant="outline" :ui="{ body: 'p-0!' }">
+  <UCard
+    variant="outline"
+    :ui="{ body: 'p-0!' }"
+  >
     <div class="flex items-center justify-between px-6 py-4">
       <div>
         <h3 class="font-medium">
@@ -87,5 +130,15 @@ async function emptyTrash() {
         />
       </div>
     </div>
+
+    <ConfirmModal
+      v-model:open="confirmState.open"
+      :title="confirmState.title"
+      :description="confirmState.description"
+      :confirm-label="confirmState.confirmLabel"
+      :confirm-color="confirmState.confirmColor"
+      :loading="confirmState.loading"
+      @confirm="onConfirmAction"
+    />
   </UCard>
 </template>

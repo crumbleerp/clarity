@@ -23,6 +23,11 @@ const fieldTypes = ['string', 'text', 'number', 'boolean', 'slug', 'url', 'email
 
 const isArray = computed(() => props.field.type === 'array' || Array.isArray(props.field.of))
 
+const isRequired = computed(() => {
+  const validation = props.field.validation
+  return Array.isArray(validation) && validation.some(rule => rule.type === 'required')
+})
+
 const itemType = computed(() => {
   if (props.field.type === 'array') {
     const of = props.field.of
@@ -75,6 +80,20 @@ function updateType(type: string) {
     }
     emit('update', next)
   }
+}
+
+function toggleRequired(value: boolean | 'indeterminate') {
+  if (typeof value !== 'boolean') return
+  const validation = Array.isArray(props.field.validation) ? [...props.field.validation] : []
+  if (value) {
+    if (!validation.some(rule => rule.type === 'required')) {
+      validation.push({ type: 'required' })
+    }
+  } else {
+    const idx = validation.findIndex(rule => rule.type === 'required')
+    if (idx >= 0) validation.splice(idx, 1)
+  }
+  updateField('validation', validation.length > 0 ? validation : undefined)
 }
 
 function toggleArray(value: boolean | 'indeterminate') {
@@ -180,6 +199,12 @@ function updateNestedField(index: number, value: FieldDef) {
               @update:model-value="v => updateField('description', v)"
             />
           </UFormField>
+          <UCheckbox
+            :model-value="isRequired"
+            label="Required"
+            :disabled="readonly"
+            @update:model-value="toggleRequired"
+          />
           <UCheckbox
             :model-value="isArray"
             label="Array"

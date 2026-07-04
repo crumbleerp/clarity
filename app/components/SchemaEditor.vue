@@ -17,6 +17,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   save: [schema: Schema]
+  delete: [name: string]
 }>()
 
 const toast = useToast()
@@ -38,6 +39,8 @@ const local = ref<Schema>({
 const addingField = ref(false)
 const newField = ref<{ name: string, title: string, type: string }>({ name: '', title: '', type: 'string' })
 const previewOpen = ref(false)
+const deleteConfirmOpen = ref(false)
+const deleting = ref(false)
 
 watch(() => props.schema, (schema) => {
   const next = schema
@@ -110,6 +113,24 @@ async function save() {
     toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
   }
 }
+
+async function confirmDelete() {
+  if (!local.value.name) return
+  deleting.value = true
+  try {
+    await $fetch(`/api/schemas/${local.value.name}`, {
+      method: 'DELETE',
+      query: { dataset: props.dataset }
+    })
+    toast.add({ title: 'Schema deleted', color: 'success' })
+    deleteConfirmOpen.value = false
+    emit('delete', local.value.name)
+  } catch (e: unknown) {
+    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
+  } finally {
+    deleting.value = false
+  }
+}
 </script>
 
 <template>
@@ -155,6 +176,15 @@ async function save() {
             variant="outline"
             color="neutral"
             @click="previewOpen = true"
+          />
+          <UButton
+            v-if="!readonly && local.name"
+            icon="i-lucide-trash"
+            label="Delete"
+            size="sm"
+            variant="outline"
+            color="error"
+            @click="deleteConfirmOpen = true"
           />
           <UButton
             v-if="!readonly"
@@ -342,5 +372,15 @@ async function save() {
         <pre class="text-xs font-mono bg-elevated/50 p-3 rounded-lg overflow-auto max-h-96">{{ JSON.stringify(local, null, 2) }}</pre>
       </template>
     </UModal>
+
+    <ConfirmModal
+      v-model:open="deleteConfirmOpen"
+      title="Delete schema"
+      :description="`Delete schema &quot;${local.name}&quot;? This will not delete existing documents of this type, but they will no longer have a schema.`"
+      confirm-label="Delete"
+      confirm-color="error"
+      :loading="deleting"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>

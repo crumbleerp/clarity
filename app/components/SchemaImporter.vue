@@ -17,6 +17,23 @@ const { data: schemas, refresh } = await useFetch('/api/schemas', {
 
 const input = ref('')
 const editing = ref<Record<string, unknown> | null>(null)
+const confirmState = ref<{
+  open: boolean
+  title: string
+  description: string
+  confirmLabel: string
+  confirmColor: 'primary' | 'error' | 'warning'
+  onConfirm: () => void | Promise<void>
+  loading: boolean
+}>({
+  open: false,
+  title: '',
+  description: '',
+  confirmLabel: 'Confirm',
+  confirmColor: 'primary',
+  onConfirm: () => {},
+  loading: false
+})
 
 watch(currentDataset, () => refresh())
 
@@ -37,13 +54,33 @@ async function saveSchemas() {
   }
 }
 
-async function deleteSchema(name: string) {
-  await $fetch(`/api/schemas/${name}`, {
-    method: 'DELETE',
-    query: { dataset: currentDataset.value }
-  })
-  toast.add({ title: `Schema "${name}" deleted`, color: 'success' })
-  await refresh()
+function deleteSchema(name: string) {
+  confirmState.value = {
+    open: true,
+    title: 'Delete schema',
+    description: `Delete schema "${name}"? This will not delete existing documents of this type, but they will no longer have a schema.`,
+    confirmLabel: 'Delete',
+    confirmColor: 'error',
+    onConfirm: async () => {
+      await $fetch(`/api/schemas/${name}`, {
+        method: 'DELETE',
+        query: { dataset: currentDataset.value }
+      })
+      toast.add({ title: `Schema "${name}" deleted`, color: 'success' })
+      await refresh()
+    },
+    loading: false
+  }
+}
+
+async function onConfirmDelete() {
+  confirmState.value.loading = true
+  try {
+    await confirmState.value.onConfirm()
+    confirmState.value.open = false
+  } finally {
+    confirmState.value.loading = false
+  }
 }
 
 function editSchema(schema: Record<string, unknown>) {
@@ -142,6 +179,16 @@ function editSchema(schema: Record<string, unknown>) {
         </div>
       </div>
     </UCard>
+
+    <ConfirmModal
+      v-model:open="confirmState.open"
+      :title="confirmState.title"
+      :description="confirmState.description"
+      :confirm-label="confirmState.confirmLabel"
+      :confirm-color="confirmState.confirmColor"
+      :loading="confirmState.loading"
+      @confirm="onConfirmDelete"
+    />
   </div>
 </template>
 

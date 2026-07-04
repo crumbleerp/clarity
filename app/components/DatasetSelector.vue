@@ -20,7 +20,7 @@ const { data, refresh } = useFetch('/api/datasets')
 const datasets = computed(() => {
   const list = new Set(data.value?.datasets || [])
   if (props.modelValue) list.add(props.modelValue)
-  return Array.from(list).sort()
+  return Array.from(list).sort((a, b) => a.localeCompare(b))
 })
 
 function select(name: string) {

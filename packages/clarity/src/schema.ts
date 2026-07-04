@@ -28,6 +28,12 @@ export interface InlineFieldType {
   to?: Array<{ type: string }>
 }
 
+export interface FieldValidationRule {
+  type: 'required' | 'min' | 'max' | 'pattern' | 'email' | 'url'
+  value?: number | string
+  message?: string
+}
+
 export interface Field {
   name: string
   title?: string
@@ -37,7 +43,7 @@ export interface Field {
   fields?: Field[]
   of?: (Field | Reference | InlineFieldType)[]
   to?: Array<{ type: string }>
-  validation?: unknown
+  validation?: FieldValidationRule[]
   [key: string]: unknown
 }
 

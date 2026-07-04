@@ -4,12 +4,15 @@ import { useDb } from '../db'
 import { documents } from '../db/schema/documents'
 import { invalidateCache } from '../services/cache'
 import { imageSize } from 'image-size'
+import { createClarityFileDocument } from '../services/system'
 
 export default defineEventHandler(async (event) => {
   requireModeratorOrAbove(event)
 
   const query = getQuery(event)
   const dataset = (query.dataset as string) || 'production'
+  const tagsParam = query.tags as string | undefined
+  const tags = tagsParam ? tagsParam.split(',').map(t => t.trim()).filter(Boolean) : undefined
   const formData = await readMultipartFormData(event)
 
   if (!formData || formData.length === 0) {
@@ -76,6 +79,18 @@ export default defineEventHandler(async (event) => {
       createdAt: now,
       updatedAt: now,
       data
+    })
+
+    await createClarityFileDocument(dataset, {
+      assetId,
+      originalFilename: part.filename,
+      mimeType: contentType,
+      extension: ext,
+      size: part.data.length,
+      path: key,
+      url,
+      tags,
+      metadata: data.metadata as Record<string, unknown> | undefined
     })
 
     results.push({

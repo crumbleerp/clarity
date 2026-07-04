@@ -2,10 +2,10 @@ import { eq } from 'drizzle-orm'
 import { useDb } from '../db'
 import { jobs } from '../db/schema/jobs'
 
-export async function createJob(payload: Record<string, string>) {
+export async function createJob(type: string, payload: Record<string, string>) {
   const db = useDb()
   const rows = await db.insert(jobs).values({
-    type: 'import',
+    type,
     payload: JSON.stringify(payload),
     status: 'pending',
     logs: '[]'

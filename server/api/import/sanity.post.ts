@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const config: ImportConfig = { projectId, dataset, token, apiVersion, targetDataset }
-  const jobId = await createJob(config as unknown as Record<string, string>)
+  const jobId = await createJob('import', config as unknown as Record<string, string>)
 
   runImportJob(jobId, config).catch((e: unknown) => {
     logger.error({ err: e, jobId }, 'Import job failed')

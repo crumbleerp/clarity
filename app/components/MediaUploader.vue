@@ -1,7 +1,10 @@
 <script setup lang="ts">
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   dataset: string
-}>()
+  tags?: string[]
+}>(), {
+  tags: () => []
+})
 
 const emit = defineEmits<{
   uploaded: []
@@ -82,7 +85,8 @@ async function uploadFiles(files: File[]) {
       xhr.addEventListener('error', () => reject(new Error('Upload failed')))
       xhr.addEventListener('abort', () => reject(new Error('Upload aborted')))
 
-      xhr.open('POST', `/api/upload?dataset=${encodeURIComponent(props.dataset)}`)
+      const tagsParam = props.tags?.length ? `&tags=${encodeURIComponent(props.tags.join(','))}` : ''
+      xhr.open('POST', `/api/upload?dataset=${encodeURIComponent(props.dataset)}${tagsParam}`)
       xhr.send(formData)
     })
 

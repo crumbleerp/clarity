@@ -4,6 +4,8 @@ import { documents } from '../../db/schema/documents'
 import { mergeDocument } from '../../utils/merge'
 import { invalidateCache } from '../../services/cache'
 import { requireModeratorOrAbove } from '../../utils/auth'
+import { getSchema } from '../../services/schema'
+import { validateDocument, type FieldDef } from '../../services/validation'
 
 export default defineEventHandler(async (event) => {
   requireModeratorOrAbove(event)
@@ -16,7 +18,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const {
-    _type,
     _id,
     _rev,
     _createdAt,
@@ -38,6 +39,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const current = existing[0]!
+  const documentType = (body._type as string | undefined) || current.type
+
+  const schema = await getSchema(documentType, dataset)
+  if (schema?.fields) {
+    const errors = validateDocument(data, schema.fields as FieldDef[])
+    if (errors.length > 0) {
+      throw createError({ statusCode: 400, message: 'Validation failed', data: { errors } })
+    }
+  }
 
   if (!current.isRevision) {
     await db.insert(documents).values({

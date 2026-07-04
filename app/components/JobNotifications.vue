@@ -9,6 +9,12 @@ function statusColor(status: string) {
   return 'info'
 }
 
+function jobLabel(type: string) {
+  if (type === 'regenerate-urls') return 'URL regeneration'
+  if (type === 'import') return 'Import'
+  return type
+}
+
 function removeJob(id: string) {
   const { jobs } = useJobs()
   const next: Record<string, Job> = {}
@@ -44,7 +50,7 @@ function saveJobs() {
               name="i-lucide-loader-2"
               class="size-4 animate-spin text-primary"
             />
-            <span class="font-medium text-sm">Running import</span>
+            <span class="font-medium text-sm">Running {{ jobLabel(job.type) }}</span>
           </div>
           <UBadge
             :label="job.status"
@@ -82,7 +88,7 @@ function saveJobs() {
               class="size-4"
               :class="job.status === 'completed' ? 'text-success' : 'text-error'"
             />
-            <span class="font-medium text-sm">Import {{ job.status }}</span>
+            <span class="font-medium text-sm">{{ jobLabel(job.type) }} {{ job.status }}</span>
           </div>
           <div class="flex items-center gap-1">
             <UBadge

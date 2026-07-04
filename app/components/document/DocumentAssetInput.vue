@@ -6,9 +6,11 @@ const props = withDefaults(defineProps<{
   type: 'image' | 'file'
   name?: string
   dataset?: string
+  tags?: string[]
   readonly?: boolean
 }>(), {
-  readonly: false
+  readonly: false,
+  tags: () => []
 })
 
 const emit = defineEmits<{
@@ -62,18 +64,6 @@ function openFilePicker() {
   fileInput.value?.click()
 }
 
-function getExtension(filename: string) {
-  return filename.split('.').pop() || ''
-}
-
-function getMimeType(filename: string) {
-  const ext = getExtension(filename).toLowerCase()
-  const map: Record<string, string> = {
-    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml'
-  }
-  return map[ext] || 'application/octet-stream'
-}
-
 function formatBytes(bytes?: number) {
   if (bytes == null) return ''
   if (bytes === 0) return '0 B'
@@ -81,22 +71,6 @@ function formatBytes(bytes?: number) {
   const sizes = ['B', 'kB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${Number((bytes / k ** i).toFixed(1))} ${sizes[i]}`
-}
-
-async function createAssetDocument(file: File, url: string) {
-  const body = {
-    _type: props.type === 'image' ? 'sanity.imageAsset' : 'sanity.fileAsset',
-    url,
-    originalFilename: file.name,
-    mimeType: file.type || getMimeType(file.name),
-    extension: getExtension(file.name),
-    size: file.size
-  }
-  const result = await $fetch<{ _id: string }>(`/api/documents?dataset=${encodeURIComponent(props.dataset || 'production')}`, {
-    method: 'POST',
-    body
-  })
-  return result._id
 }
 
 async function processFile(file: File) {
@@ -111,19 +85,19 @@ async function processFile(file: File) {
     const formData = new FormData()
     formData.append('file', file)
 
-    const uploadResult = await $fetch<{ files: Array<{ url: string }> }>('/api/upload', {
+    const tagsParam = props.tags?.length ? `&tags=${encodeURIComponent(props.tags.join(','))}` : ''
+    const uploadResult = await $fetch<{ files: Array<{ url: string, assetId: string, type: string }> }>(`/api/upload?dataset=${encodeURIComponent(props.dataset || 'production')}${tagsParam}`, {
       method: 'POST',
       body: formData
     })
 
-    const uploadedUrl = uploadResult.files[0]?.url
-    if (!uploadedUrl) {
+    const fileResult = uploadResult.files[0]
+    if (!fileResult?.url || !fileResult?.assetId) {
       toast.add({ title: 'Upload failed', color: 'error' })
       return
     }
 
-    const assetId = await createAssetDocument(file, uploadedUrl)
-    setAsset(assetId)
+    setAsset(fileResult.assetId)
     toast.add({ title: 'Uploaded', color: 'success' })
   } catch (e: unknown) {
     toast.add({ title: 'Upload failed', description: (e as Error).message, color: 'error' })

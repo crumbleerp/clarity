@@ -20,8 +20,12 @@ function escapeIdentifier(name: string): string {
   return `'${name.replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'`
 }
 
+function isRequired(field: Field): boolean {
+  return Array.isArray(field.validation) && field.validation.some(rule => rule.type === 'required')
+}
+
 function fieldToTypeScript(field: Field, indent: string): string {
-  const optional = field.validation ? '' : '?'
+  const optional = isRequired(field) ? '' : '?'
   const key = `${escapeIdentifier(field.name)}${optional}: `
 
   if (field.type === 'number') {

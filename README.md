@@ -31,6 +31,9 @@ Clarity is a self-hosted CMS that gives you a **Sanity-compatible API** on top o
 - **S3 media storage** — upload images and files to any S3-compatible provider
 - **Multi-dataset** — manage multiple datasets (e.g. `production`, `staging`) from one instance
 - **One-click Sanity import** — migrate your existing project with full asset transfer
+- **Background jobs** — import and asset URL regeneration run asynchronously with live progress
+- **Revision history & trash** — soft deletes, revision restore, and document history
+- **Asset tagging** — tag files and query them via GROQ (`_clarity.file`)
 
 ---
 
@@ -58,6 +61,8 @@ services:
       NUXT_S3_ACCESS_KEY: access-key
       NUXT_S3_SECRET_KEY: secret-key
       NUXT_S3_PUBLIC_URL: https://cdn.example.com
+      NUXT_CORS_ORIGINS: ""
+      NUXT_GROQ_CACHE_TTL: "0"
     depends_on:
       postgres:
         condition: service_healthy
@@ -145,6 +150,7 @@ The client works with any framework — Next.js, Nuxt, SvelteKit, Astro, or plai
 docker run -d \
   -p 3000:3000 \
   -e NUXT_DATABASE_URL=postgresql://user:pass@host:5432/clarity \
+  -e NUXT_PUBLIC_DATASET=production \
   -e NUXT_ROOT_USERNAME=admin \
   -e NUXT_ROOT_PASSWORD=change-me \
   -e NUXT_SESSION_SECRET=your-random-secret-at-least-32-chars \
@@ -156,17 +162,19 @@ docker run -d \
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `NUXT_DATABASE_URL` | Yes | — | PostgreSQL connection string |
-| `NUXT_DATASET` | No | `production` | Default dataset name |
+| `NUXT_PUBLIC_DATASET` / `DATASET` | No | `production` | Default dataset name. Created automatically on first start only if no datasets exist yet |
 | `NUXT_ROOT_USERNAME` | No | `admin` | Root user login |
 | `NUXT_ROOT_PASSWORD` | No | `admin` | Root user password |
-| `NUXT_NUXT_SESSION_SECRET` | Yes | — | Session encryption secret (min 32 chars) |
-| `NUXT_BASE_URL` | No | — | Public API base URL (empty = same origin) |
+| `NUXT_SESSION_SECRET` | Yes | — | Session encryption secret (min 32 chars) |
+| `NUXT_PUBLIC_API_BASE_URL` / `BASE_URL` | No | — | Public API base URL (empty = same origin) |
 | `NUXT_S3_ENDPOINT` | No | — | S3-compatible storage endpoint |
 | `NUXT_S3_REGION` | No | `us-east-1` | S3 region |
 | `NUXT_S3_BUCKET` | No | — | S3 bucket name |
 | `NUXT_S3_ACCESS_KEY` | No | — | S3 access key |
 | `NUXT_S3_SECRET_KEY` | No | — | S3 secret key |
-| `NUXT_S3_PUBLIC_URL` | No | — | Public URL for serving uploaded assets |
+| `NUXT_S3_PUBLIC_URL` | No | — | Public URL for serving uploaded assets. After changing it run **Regenerate asset URLs** in Settings |
+| `NUXT_CORS_ORIGINS` | No | — | Comma-separated allowed CORS origins |
+| `NUXT_GROQ_CACHE_TTL` | No | `0` | GROQ query cache TTL in seconds (`0` = disabled) |
 
 ---
 
@@ -176,20 +184,25 @@ Schemas define the structure of your documents. You can manage them from the das
 
 ### Dashboard
 
-Navigate to **Settings → Schemas** and define your types using the built-in JSON editor:
+Navigate to **Documents → Schemas** tab and use the visual schema editor, or go to **Settings → Schemas** for the JSON importer.
 
 ```json
 [
   {
     "name": "post",
     "title": "Blog Post",
-    "schema_type": "document",
+    "type": "document",
     "fields": [
-      { "name": "title", "type": "string", "title": "Title", "required": true },
+      {
+        "name": "title",
+        "type": "string",
+        "title": "Title",
+        "validation": [{ "type": "required" }]
+      },
       { "name": "slug", "type": "slug", "title": "Slug" },
       { "name": "body", "type": "markdown", "title": "Body" },
       { "name": "publishedAt", "type": "datetime", "title": "Published At" },
-      { "name": "author", "type": "reference", "title": "Author", "referenceTo": ["author"] }
+      { "name": "author", "type": "reference", "title": "Author", "to": [{ "type": "author" }] }
     ]
   }
 ]
@@ -216,6 +229,35 @@ Navigate to **Settings → Schemas** and define your types using the built-in JS
 | `file` | File upload / media selector |
 | `object` | Nested object with its own fields |
 | `array` | List of items |
+| `document` | Inline sub-document |
+| `block` | Portable Text block |
+
+### Media & Assets
+
+Uploaded images and files are stored in your S3-compatible bucket. For every file Clarity creates:
+
+- a `sanity.imageAsset` / `sanity.fileAsset` document for the media library;
+- a hidden `_clarity.file` document with full metadata (`assetId`, `originalFilename`, `mimeType`, `extension`, `size`, `path`, `url`, `tags`, `metadata`).
+
+`_clarity.*` types are hidden from the dashboard but fully queryable with GROQ:
+
+```groq
+*[_type == "_clarity.file" && "hero" in tags][0]
+```
+
+Tags are managed from the asset details modal. Each unique tag is also stored as a `_clarity.file_tags` document, so you can list all available tags:
+
+```groq
+*[_type == "_clarity.file_tags"]{ name, title }
+```
+
+Upload with tags:
+
+```bash
+POST /api/upload?dataset=production&tags=hero,banner
+```
+
+**Changing `S3_PUBLIC_URL`** (for example after switching CDN) does not automatically rewrite existing URLs. Go to **Settings → Danger Zone → Regenerate asset URLs** to rebuild all asset URLs from the current `S3_PUBLIC_URL`. This runs as a background job.
 
 ### JavaScript client
 
@@ -243,6 +285,77 @@ const post = defineType({
 const posts = await client.fetch(groq`*[_type == 'post'] | order(publishedAt desc)`)
 ```
 
+### Nuxt module
+
+For Nuxt 4 projects install the dedicated module:
+
+```bash
+npm install @crumbleerp/clarity
+```
+
+Add it to `nuxt.config.ts`:
+
+```ts
+export default defineNuxtConfig({
+  modules: ['@crumbleerp/clarity/nuxt'],
+})
+```
+
+And create a `clarity.config.ts`:
+
+```ts
+import { defineClarityConfig, defineType, defineField } from '@crumbleerp/clarity/nuxt'
+
+const post = defineType({
+  name: 'post',
+  title: 'Blog Post',
+  fields: [
+    defineField({ name: 'title', type: 'string', title: 'Title' }),
+    defineField({ name: 'body', type: 'markdown', title: 'Body' })
+  ]
+})
+
+export default defineClarityConfig({
+  endpoint: 'https://your-clarity-instance.com',
+  dataset: 'production',
+  token: process.env.CLARITY_TOKEN,
+  schema: [post],
+  publishSchema: 'dev-only' jyон
+})
+```
+
+The module auto-registers:
+
+- `$clarity` client available via `useClarity()`
+- `useClarityQuery(query, params)` — SSR-friendly composable
+- `useClarityConfig()` — runtime config accessor
+- `groq` tagged template
+- TypeScript definitions generated from your schema in `types/clarity.d.ts`
+
+Example page:
+
+```vue
+<script setup lang="ts">
+const { data: posts } = await useClarityQuery(
+  groq`*[_type == 'post'] | order(publishedAt desc)[0...10]`
+)
+</script>
+
+<template>
+  <ul>
+    <li v-for="post in posts" :key="post._id">
+      {{ post.title }}
+    </li>
+  </ul>
+</template>
+```
+
+`publishSchema` controls whether the module pushes your local schema to the Clarity server on startup:
+
+- `true` — always publish
+- `false` — never publish
+- `'dev-only'` — publish only in development (default)
+
 ---
 
 ## Sanity Compatibility
@@ -264,6 +377,8 @@ Clarity implements Sanity's public API for queries and mutations, making it a dr
 | Document references | Supported |
 | Image & file assets | Supported |
 | Multi-dataset | Supported |
+| Required field validation | Supported |
+| System types (`_clarity.*`) | Hidden in UI, queryable via GROQ |
 
 ### What's different
 
@@ -285,7 +400,9 @@ Clarity includes a one-click import tool. Go to **Settings → Import from Sanit
 - Dataset name
 - Read token
 
-All documents, schemas, and assets will be migrated automatically with background job tracking.
+All documents, schemas, and assets will be migrated automatically with background job tracking. Asset tags are mapped to `_clarity.file.tags` and `_clarity.file_tags`.
+
+After import, if you change `S3_PUBLIC_URL`, run **Regenerate asset URLs** to update all asset links.
 
 ---
 
@@ -316,16 +433,32 @@ Content-Type: application/json
 |--------|----------|-------------|
 | `POST` | `/api/auth/login` | Authenticate |
 | `GET` | `/api/auth/me` | Current user |
+| `GET` | `/api/datasets` | List datasets |
+| `POST` | `/api/datasets` | Create dataset |
 | `GET` | `/api/documents` | List documents |
 | `POST` | `/api/documents` | Create document |
 | `GET` | `/api/documents/:id` | Get document |
 | `PUT` | `/api/documents/:id` | Update document |
-| `DELETE` | `/api/documents/:id` | Delete document |
+| `DELETE` | `/api/documents/:id` | Delete document (soft) |
+| `GET` | `/api/documents/:id/revisions` | List revisions |
+| `POST` | `/api/documents/:id/restore` | Restore a revision |
+| `GET` | `/api/documents/trash` | List deleted documents |
+| `DELETE` | `/api/documents/trash` | Empty trash |
 | `GET` | `/api/schemas` | List schemas |
 | `POST` | `/api/schemas` | Create/update schemas |
 | `DELETE` | `/api/schemas/:name` | Delete schema |
 | `GET` | `/api/media` | List media assets |
+| `GET` | `/api/media/:id` | Get media asset |
+| `PUT` | `/api/media/:id` | Update media asset metadata |
+| `DELETE` | `/api/media/:id` | Delete media asset |
 | `POST` | `/api/upload` | Upload file |
+| `POST` | `/api/import/sanity` | Import from Sanity (background job) |
+| `GET` | `/api/jobs/:id` | Get job status |
+| `POST` | `/api/admin/truncate` | Delete all documents and schemas |
+| `POST` | `/api/admin/regenerate-urls` | Rebuild asset URLs from `S3_PUBLIC_URL` |
+| `GET/POST/PUT/DELETE` | `/api/users` | User management (admin/root) |
+| `GET/POST/DELETE` | `/api/access-tokens` | Access tokens (admin/root) |
+| `GET/POST/DELETE` | `/api/allowed-origins` | CORS origins (admin/root) |
 
 ---
 

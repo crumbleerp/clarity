@@ -39,6 +39,42 @@ const modalOpen = computed({
   }
 })
 
+const confirmState = ref<{
+  open: boolean
+  title: string
+  description: string
+  confirmLabel: string
+  confirmColor: 'primary' | 'error' | 'warning'
+  onConfirm: () => void | Promise<void>
+  loading: boolean
+}>({
+  open: false,
+  title: '',
+  description: '',
+  confirmLabel: 'Confirm',
+  confirmColor: 'primary',
+  onConfirm: () => {},
+  loading: false
+})
+
+function openConfirm(options: Omit<typeof confirmState.value, 'open' | 'loading' | 'onConfirm'> & { onConfirm: () => void | Promise<void> }) {
+  confirmState.value = {
+    ...options,
+    open: true,
+    loading: false
+  }
+}
+
+async function onConfirmAction() {
+  confirmState.value.loading = true
+  try {
+    await confirmState.value.onConfirm()
+    confirmState.value.open = false
+  } finally {
+    confirmState.value.loading = false
+  }
+}
+
 function openAsset(id: string) {
   selectedId.value = id
   router.push({ query: { ...route.query, id } })
@@ -67,16 +103,20 @@ async function saveAsset(payload: Partial<MediaAsset>) {
   }
 }
 
-async function deleteAsset() {
+function deleteAsset() {
   if (!selectedId.value) return
-  try {
-    await $fetch(`/api/media/${selectedId.value}`, { method: 'DELETE' })
-    toast.add({ title: 'Asset deleted', color: 'success' })
-    modalOpen.value = false
-    await refresh()
-  } catch (e: unknown) {
-    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
-  }
+  openConfirm({
+    title: 'Delete asset',
+    description: 'Are you sure you want to delete this asset? It cannot be undone.',
+    confirmLabel: 'Delete',
+    confirmColor: 'error',
+    onConfirm: async () => {
+      await $fetch(`/api/media/${selectedId.value}`, { method: 'DELETE' })
+      toast.add({ title: 'Asset deleted', color: 'success' })
+      modalOpen.value = false
+      await refresh()
+    }
+  })
 }
 
 useHead({ title: 'Media' })
@@ -190,6 +230,16 @@ useHead({ title: 'Media' })
       :readonly="!canWriteMedia"
       @save="saveAsset"
       @delete="deleteAsset"
+    />
+
+    <ConfirmModal
+      v-model:open="confirmState.open"
+      :title="confirmState.title"
+      :description="confirmState.description"
+      :confirm-label="confirmState.confirmLabel"
+      :confirm-color="confirmState.confirmColor"
+      :loading="confirmState.loading"
+      @confirm="onConfirmAction"
     />
   </div>
 </template>

@@ -76,8 +76,19 @@ export function useJobs() {
     intervals.set(id, interval)
   }
 
-  function trackJob(id: string) {
-    loadStoredJobs()
+  function trackJob(id: string, type = 'import') {
+    if (!jobs.value[id]) {
+      jobs.value[id] = {
+        id,
+        type,
+        status: 'running',
+        result: null,
+        error: null,
+        logs: [],
+        createdAt: '',
+        updatedAt: ''
+      }
+    }
     startPolling(id)
     saveStoredJobs()
   }
@@ -93,14 +104,24 @@ export function useJobs() {
     Object.values(jobs.value).filter(j => j.status === 'pending' || j.status === 'running')
   )
 
+  const runningJobsByType = (type: string) => computed(() =>
+    Object.values(jobs.value).filter(j => (j.status === 'pending' || j.status === 'running') && j.type === type)
+  )
+
   const completedJobs = computed(() =>
     Object.values(jobs.value).filter(j => j.status === 'completed' || j.status === 'failed')
+  )
+
+  const completedJobsByType = (type: string) => computed(() =>
+    Object.values(jobs.value).filter(j => (j.status === 'completed' || j.status === 'failed') && j.type === type)
   )
 
   return {
     jobs,
     runningJobs,
+    runningJobsByType,
     completedJobs,
+    completedJobsByType,
     trackJob,
     init
   }

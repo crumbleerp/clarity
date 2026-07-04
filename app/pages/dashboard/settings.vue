@@ -2,14 +2,16 @@
 definePageMeta({ middleware: 'auth' })
 
 const toast = useToast()
-const { trackJob, runningJobs } = useJobs()
-const { isGuest, canImport, canWriteDocuments, canManageUsers, canManageTokens, canManageOrigins, canTruncate, canCreateDatasets } = usePermissions()
+const { trackJob, runningJobsByType } = useJobs()
+const { isGuest, isAdminOrRoot, canImport, canWriteDocuments, canManageUsers, canManageTokens, canManageOrigins, canTruncate, canCreateDatasets } = usePermissions()
 
 watchEffect(() => {
   if (isGuest.value) {
     navigateTo('/dashboard/documents')
   }
 })
+
+const runningJobs = runningJobsByType('import')
 
 const importState = reactive({
   projectId: '',
@@ -27,6 +29,42 @@ const tokenModalOpen = ref(false)
 const createdToken = ref<string | null>(null)
 
 const originModalOpen = ref(false)
+
+const confirmState = ref<{
+  open: boolean
+  title: string
+  description: string
+  confirmLabel: string
+  confirmColor: 'primary' | 'error' | 'warning'
+  onConfirm: () => void | Promise<void>
+  loading: boolean
+}>({
+  open: false,
+  title: '',
+  description: '',
+  confirmLabel: 'Confirm',
+  confirmColor: 'primary',
+  onConfirm: () => {},
+  loading: false
+})
+
+function openConfirm(options: Omit<typeof confirmState.value, 'open' | 'loading' | 'onConfirm'> & { onConfirm: () => void | Promise<void> }) {
+  confirmState.value = {
+    ...options,
+    open: true,
+    loading: false
+  }
+}
+
+async function onConfirmAction() {
+  confirmState.value.loading = true
+  try {
+    await confirmState.value.onConfirm()
+    confirmState.value.open = false
+  } finally {
+    confirmState.value.loading = false
+  }
+}
 
 const { data: users, refresh: refreshUsers } = await useFetch('/api/users')
 const { data: accessTokens, refresh: refreshAccessTokens } = await useFetch('/api/access-tokens')
@@ -64,7 +102,7 @@ async function onImportSubmit() {
       body: importState
     })
 
-    trackJob(result.jobId)
+    trackJob(result.jobId, 'import')
     toast.add({ title: 'Import started', description: `Job ${result.jobId}`, color: 'info' })
   } catch (e: unknown) {
     toast.add({ title: 'Import failed', description: (e as Error).message, color: 'error' })
@@ -127,14 +165,18 @@ async function saveAccessToken(data: { name: string, role: string, expiresAt: st
   }
 }
 
-async function deleteAccessToken(id: string) {
-  try {
-    await $fetch(`/api/access-tokens/${id}`, { method: 'DELETE' })
-    await refreshAccessTokens()
-    toast.add({ title: 'Access token deleted', color: 'success' })
-  } catch (e: unknown) {
-    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
-  }
+function deleteAccessToken(id: string) {
+  openConfirm({
+    title: 'Delete access token',
+    description: 'Are you sure you want to delete this access token? It cannot be restored.',
+    confirmLabel: 'Delete',
+    confirmColor: 'error',
+    onConfirm: async () => {
+      await $fetch(`/api/access-tokens/${id}`, { method: 'DELETE' })
+      await refreshAccessTokens()
+      toast.add({ title: 'Access token deleted', color: 'success' })
+    }
+  })
 }
 
 function copyToken() {
@@ -156,23 +198,47 @@ async function saveAllowedOrigin(origin: string) {
   }
 }
 
-async function deleteAllowedOrigin(id: string) {
-  try {
-    await $fetch(`/api/allowed-origins/${id}`, { method: 'DELETE' })
-    await refreshAllowedOrigins()
-    toast.add({ title: 'Origin deleted', color: 'success' })
-  } catch (e: unknown) {
-    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
-  }
+function deleteAllowedOrigin(id: string) {
+  openConfirm({
+    title: 'Delete allowed origin',
+    description: 'Are you sure you want to delete this allowed origin?',
+    confirmLabel: 'Delete',
+    confirmColor: 'error',
+    onConfirm: async () => {
+      await $fetch(`/api/allowed-origins/${id}`, { method: 'DELETE' })
+      await refreshAllowedOrigins()
+      toast.add({ title: 'Origin deleted', color: 'success' })
+    }
+  })
 }
 
-async function truncateData() {
-  try {
-    await $fetch('/api/admin/truncate', { method: 'POST' })
-    toast.add({ title: 'Data truncated', description: 'All documents and schemas removed', color: 'success' })
-  } catch (e: unknown) {
-    toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })
-  }
+function truncateData() {
+  openConfirm({
+    title: 'Truncate all data',
+    description: 'Are you sure you want to permanently delete all documents and schemas? Jobs and users will remain. This cannot be undone.',
+    confirmLabel: 'Truncate',
+    confirmColor: 'error',
+    onConfirm: async () => {
+      await $fetch('/api/admin/truncate', { method: 'POST' })
+      toast.add({ title: 'Data truncated', description: 'All documents and schemas removed', color: 'success' })
+    }
+  })
+}
+
+const currentDataset = useCurrentDataset()
+
+function regenerateAssetUrls() {
+  openConfirm({
+    title: 'Regenerate asset URLs',
+    description: `Rebuild asset URLs in "${currentDataset.value}" using current S3_PUBLIC_URL. This updates all sanity.imageAsset, sanity.fileAsset and _clarity.file documents.`,
+    confirmLabel: 'Regenerate',
+    confirmColor: 'warning',
+    onConfirm: async () => {
+      const result = await $fetch<{ jobId: string }>(`/api/admin/regenerate-urls?dataset=${encodeURIComponent(currentDataset.value)}`, { method: 'POST' })
+      trackJob(result.jobId, 'regenerate-urls')
+      toast.add({ title: 'URL regeneration started', description: `Job ${result.jobId}`, color: 'info' })
+    }
+  })
 }
 
 onMounted(() => {
@@ -556,6 +622,30 @@ useHead({ title: 'Settings' })
             />
 
             <UCard
+              v-if="isAdminOrRoot"
+              variant="outline"
+              class="border-warning/50 mb-4"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <h3 class="font-medium">
+                    Regenerate asset URLs
+                  </h3>
+                  <p class="text-sm text-muted mt-1">
+                    Rebuild asset URLs from current S3_PUBLIC_URL for all assets in this dataset.
+                  </p>
+                </div>
+                <UButton
+                  label="Regenerate"
+                  icon="i-lucide-refresh-cw"
+                  color="warning"
+                  size="sm"
+                  @click="regenerateAssetUrls"
+                />
+              </div>
+            </UCard>
+
+            <UCard
               v-if="canTruncate"
               variant="outline"
               class="border-error/50"
@@ -620,6 +710,16 @@ useHead({ title: 'Settings' })
       <AllowedOriginFormModal
         v-model:open="originModalOpen"
         @submit="saveAllowedOrigin"
+      />
+
+      <ConfirmModal
+        v-model:open="confirmState.open"
+        :title="confirmState.title"
+        :description="confirmState.description"
+        :confirm-label="confirmState.confirmLabel"
+        :confirm-color="confirmState.confirmColor"
+        :loading="confirmState.loading"
+        @confirm="onConfirmAction"
       />
     </div>
   </div>
