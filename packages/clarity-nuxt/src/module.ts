@@ -9,8 +9,8 @@ import {
   defineNuxtModule,
   logger
 } from '@nuxt/kit'
-import { createClient } from '../client.js'
-import { generateSchemaTypes } from '../schema-types.js'
+import { createClient } from '@crumbleerp/clarity'
+import { generateSchemaTypes } from './schema-types.js'
 import type { ClarityNuxtConfig } from './types.js'
 
 export default defineNuxtModule<ClarityNuxtConfig>({
@@ -49,7 +49,7 @@ export default defineNuxtModule<ClarityNuxtConfig>({
     addImports([{
       name: 'groq',
       as: 'groq',
-      from: resolver.resolve('../groq.js')
+      from: resolver.resolve('./runtime/groq.js')
     }])
 
     const shouldPublish = config.publishSchema === true

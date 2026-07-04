@@ -1,5 +1,5 @@
 import { defineNuxtPlugin, useRuntimeConfig } from 'nuxt/app'
-import { createClient } from '../../../client.js'
+import { createClient } from '@crumbleerp/clarity'
 import type { ClarityNuxtConfig } from '../../types.js'
 
 export default defineNuxtPlugin(() => {

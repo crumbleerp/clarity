@@ -1,4 +1,4 @@
-import type { Field, Type } from './schema.js'
+import type { Field, Type } from '@crumbleerp/clarity'
 
 const PRIMITIVE_STRING_TYPES = new Set([
   'string',

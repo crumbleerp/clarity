@@ -8,6 +8,8 @@ JavaScript/TypeScript client for [Clarity CMS](https://github.com/crumbleerp/cla
 npm install @crumbleerp/clarity
 ```
 
+> For Nuxt 4 integration use [`@crumbleerp/clarity-nuxt`](https://www.npmjs.com/package/@crumbleerp/clarity-nuxt) instead.
+
 ## Quick Start
 
 ```ts
@@ -128,79 +130,6 @@ const titleField = defineField({
 })
 ```
 
-### `defineI18nField(def, locales?)`
-
-Wraps a field into a locale-keyed object. Defaults to `['en']`.
-
-```ts
-import { defineI18nField } from '@crumbleerp/clarity'
-
-const title = defineI18nField(
-  { name: 'title', type: 'string', title: 'Title' },
-  ['en', 'de', 'fr']
-)
-
-// Produces:
-// { name: 'title', type: 'object', fields: [
-//   { name: 'en', title: 'EN', type: 'string' },
-//   { name: 'de', title: 'DE', type: 'string' },
-//   { name: 'fr', title: 'FR', type: 'string' }
-// ] }
-```
-
-### `createI18nField(locales)`
-
-Returns a reusable i18n field factory for a fixed set of locales.
-
-```ts
-import { createI18nField, defineField } from '@crumbleerp/clarity'
-
-const i18n = createI18nField(['en', 'de'])
-
-const post = defineType({
-  name: 'post',
-  type: 'document',
-  fields: [
-    i18n({ name: 'title', type: 'string', title: 'Title' }),
-    i18n({ name: 'description', type: 'text', title: 'Description' })
-  ]
-})
-```
-
-### `defineThemeField(def, themes?)`
-
-Wraps a field into a theme-keyed object. Defaults to `['light', 'dark']`.
-
-```ts
-import { defineThemeField } from '@crumbleerp/clarity'
-
-const bg = defineThemeField(
-  { name: 'background', type: 'color', title: 'Background' },
-  ['light', 'dark']
-)
-
-// Produces:
-// { name: 'background', type: 'object', fields: [
-//   { name: 'light', title: 'light', type: 'color' },
-//   { name: 'dark', title: 'dark', type: 'color' }
-// ] }
-```
-
-### `createThemeField(themes)`
-
-Returns a reusable theme field factory.
-
-```ts
-import { createThemeField } from '@crumbleerp/clarity'
-
-const themed = createThemeField(['light', 'dark'])
-
-const fields = [
-  themed({ name: 'bg', type: 'color', title: 'Background' }),
-  themed({ name: 'text', type: 'color', title: 'Text Color' })
-]
-```
-
 ## Field Types
 
 All supported `ClarityFieldType` values:
@@ -239,8 +168,6 @@ All exported types:
 | `ClarityFieldType` | Union of all field type strings |
 | `ClarityTypeType` | `'document' \| 'object'` |
 | `ReferenceType` | Reference field config |
-| `I18nFieldInput` | Input for `defineI18nField` |
-| `ThemeFieldInput` | Input for `defineThemeField` |
 
 ## License
 

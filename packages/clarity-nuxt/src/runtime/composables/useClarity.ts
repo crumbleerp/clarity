@@ -1,5 +1,5 @@
 import { useNuxtApp } from 'nuxt/app'
-import type { Client } from '../../../client.js'
+import type { Client } from '@crumbleerp/clarity'
 
 export function useClarity(): Client {
   const nuxtApp = useNuxtApp()

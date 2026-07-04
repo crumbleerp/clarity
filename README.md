@@ -290,21 +290,21 @@ const posts = await client.fetch(groq`*[_type == 'post'] | order(publishedAt des
 For Nuxt 4 projects install the dedicated module:
 
 ```bash
-npm install @crumbleerp/clarity
+npm install @crumbleerp/clarity-nuxt
 ```
 
 Add it to `nuxt.config.ts`:
 
 ```ts
 export default defineNuxtConfig({
-  modules: ['@crumbleerp/clarity/nuxt'],
+  modules: ['@crumbleerp/clarity-nuxt'],
 })
 ```
 
 And create a `clarity.config.ts`:
 
 ```ts
-import { defineClarityConfig, defineType, defineField } from '@crumbleerp/clarity/nuxt'
+import { defineClarityConfig, defineType, defineField } from '@crumbleerp/clarity-nuxt'
 
 const post = defineType({
   name: 'post',
@@ -320,7 +320,7 @@ export default defineClarityConfig({
   dataset: 'production',
   token: process.env.CLARITY_TOKEN,
   schema: [post],
-  publishSchema: 'dev-only' jyон
+  publishSchema: 'dev-only'
 })
 ```
 

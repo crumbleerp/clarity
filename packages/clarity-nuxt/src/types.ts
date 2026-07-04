@@ -1,4 +1,4 @@
-import type { Config } from '../client.js'
+import type { Config } from '@crumbleerp/clarity'
 
 export interface ClarityNuxtConfig extends Config {
   /**
