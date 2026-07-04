@@ -19,7 +19,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
-    "pub": "pnpm publish --access public"
+    "pub": "tsc && pnpm publish --access public"
   },
   "publishConfig": {
     "access": "public"
