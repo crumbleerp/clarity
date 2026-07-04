@@ -52,31 +52,46 @@ export default defineNuxtModule<ClarityNuxtConfig>({
       from: resolver.resolve('../groq.js')
     }])
 
-    if (config.schema) {
+    const shouldPublish = config.publishSchema === true
+      || (config.publishSchema === 'dev-only' && !nuxt.options._prepare)
+
+    if (config.endpoint && config.token) {
+      const client = createClient({
+        endpoint: config.endpoint,
+        dataset: config.dataset,
+        version: config.version,
+        token: config.token,
+        schema: config.schema
+      })
+
+      if (shouldPublish && config.schema) {
+        try {
+          await client.syncSchema()
+          logger.success('[clarity] Schema published')
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          logger.warn(`[clarity] Failed to publish schema: ${message}`)
+        }
+      }
+
+      try {
+        const serverSchemas = await client.fetchSchemas()
+        if (serverSchemas.length > 0) {
+          addTypeTemplate({
+            filename: 'types/clarity.d.ts',
+            getContents: () => generateSchemaTypes(serverSchemas)
+          })
+          logger.success('[clarity] Types generated from server schema')
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        logger.warn(`[clarity] Failed to fetch server schema: ${message}`)
+      }
+    } else if (config.schema) {
       addTypeTemplate({
         filename: 'types/clarity.d.ts',
         getContents: () => generateSchemaTypes(config.schema!)
       })
-    }
-
-    const shouldPublish = config.publishSchema === true
-      || (config.publishSchema === 'dev-only' && !nuxt.options._prepare)
-
-    if (shouldPublish && config.endpoint) {
-      try {
-        const client = createClient({
-          endpoint: config.endpoint,
-          dataset: config.dataset,
-          version: config.version,
-          token: config.token,
-          schema: config.schema
-        })
-        await client.syncSchema()
-        logger.success('[clarity] Schema published')
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        logger.warn(`[clarity] Failed to publish schema: ${message}`)
-      }
     }
   }
 })

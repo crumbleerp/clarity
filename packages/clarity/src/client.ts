@@ -62,7 +62,7 @@ export class Client {
   }
 
   syncSchema(): Promise<unknown> {
-    const { endpoint, dataset, token } = this.config
+    const { endpoint, dataset } = this.config
     const datasetName = dataset || 'production'
     if (!endpoint) throw new Error('No Clarity endpoint provided')
     if (!this.schema.length) throw new Error('No schema provided')
@@ -70,13 +70,8 @@ export class Client {
     const url = new URL(`${endpoint.replace(/\/$/, '')}/api/schemas`)
     url.searchParams.set('dataset', datasetName)
 
-    const headers: Record<string, string> = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    }
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
+    const headers = this.buildHeaders()
+    headers['Content-Type'] = 'application/json'
 
     const fetchFn = this.config.fetch || globalThis.fetch
 
@@ -91,6 +86,45 @@ export class Client {
       }
       return res.json() as unknown
     })
+  }
+
+  fetchSchemas(): Promise<Type[]> {
+    const { endpoint, dataset } = this.config
+    const datasetName = dataset || 'production'
+    if (!endpoint) throw new Error('No Clarity endpoint provided')
+    if (!this.config.token) throw new Error('No Clarity token provided')
+
+    const url = new URL(`${endpoint.replace(/\/$/, '')}/api/schemas`)
+    url.searchParams.set('dataset', datasetName)
+
+    const fetchFn = this.config.fetch || globalThis.fetch
+
+    return fetchFn(url.toString(), {
+      method: 'GET',
+      headers: this.buildHeaders()
+    }).then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`Clarity fetchSchemas error ${res.status}: ${text}`)
+      }
+      const json = await res.json() as Array<{ name: string, title: string, schema_type: string, fields: unknown[] }>
+      return json.map(item => ({
+        name: item.name,
+        title: item.title,
+        type: item.schema_type as 'document' | 'object',
+        fields: item.fields
+      })) as Type[]
+    })
+  }
+
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: 'application/json'
+    }
+    if (this.config.token) {
+      headers.Authorization = `Bearer ${this.config.token}`
+    }
+    return headers
   }
 
   private getQueryUrl(): string {
