@@ -91,7 +91,7 @@ function updateSearch() {
 async function saveAsset(payload: Partial<MediaAsset>) {
   if (!selectedId.value) return
   try {
-    await $fetch(`/api/media/${selectedId.value}`, {
+    await $fetch(`/api/media/${selectedId.value}?dataset=${encodeURIComponent(currentDataset.value)}`, {
       method: 'PUT',
       body: payload
     })
@@ -111,7 +111,7 @@ function deleteAsset() {
     confirmLabel: 'Delete',
     confirmColor: 'error',
     onConfirm: async () => {
-      await $fetch(`/api/media/${selectedId.value}`, { method: 'DELETE' })
+      await $fetch(`/api/media/${selectedId.value}?dataset=${encodeURIComponent(currentDataset.value)}`, { method: 'DELETE' })
       toast.add({ title: 'Asset deleted', color: 'success' })
       modalOpen.value = false
       await refresh()
