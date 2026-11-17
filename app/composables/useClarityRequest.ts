@@ -1,10 +1,12 @@
-import type { UseFetchOptions } from 'nuxt/app'
+import type { $Fetch, FetchOptions } from 'ofetch'
 
 /** Keep dashboard API calls under the configured application base path. */
-export function useClarityRequest<T = unknown>(request: string, options?: Parameters<typeof $fetch>[1]) {
-  return $fetch<T>(request, { baseURL: useRuntimeConfig().app.baseURL, ...options })
-}
+// Preserve Nuxt's generic call signatures, including method-aware route types.
+export const useClarityRequest = ((request: string, options?: FetchOptions) => {
+  return ($fetch as $Fetch)(request, { baseURL: useRuntimeConfig().app.baseURL, ...options })
+}) as typeof $fetch
 
-export function useClarityData<T = unknown>(request: string, options?: UseFetchOptions<T>) {
-  return useFetch<T>(request, { baseURL: useRuntimeConfig().app.baseURL, ...options })
-}
+export const useClarityData = ((...args: Parameters<typeof useFetch>) => {
+  const [request, options] = args
+  return useFetch(request, { baseURL: useRuntimeConfig().app.baseURL, ...options })
+}) as typeof useFetch
