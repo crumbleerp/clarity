@@ -2,7 +2,7 @@
 const toast = useToast()
 const currentDataset = useCurrentDataset()
 
-const { data: trashed, refresh } = await useFetch('/api/documents/trash', {
+const { data: trashed, refresh } = await useClarityData('/api/documents/trash', {
   query: computed(() => ({ dataset: currentDataset.value }))
 })
 
@@ -44,7 +44,7 @@ async function onConfirmAction() {
 
 async function restore(id: string) {
   try {
-    await $fetch(`/api/documents/${id}/restore`, {
+    await useClarityRequest(`/api/documents/${id}/restore`, {
       method: 'POST',
       query: { dataset: currentDataset.value }
     })
@@ -62,7 +62,7 @@ function emptyTrash() {
     confirmLabel: 'Empty trash',
     confirmColor: 'error',
     onConfirm: async () => {
-      await $fetch('/api/documents/trash', {
+      await useClarityRequest('/api/documents/trash', {
         method: 'DELETE',
         query: { dataset: currentDataset.value }
       })

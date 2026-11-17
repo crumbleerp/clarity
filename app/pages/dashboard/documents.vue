@@ -13,7 +13,7 @@ const toast = useToast()
 const currentDataset = useCurrentDataset()
 const { canWriteDocuments } = usePermissions()
 
-const { data: schemas, refresh: refreshSchemas } = await useFetch('/api/schemas', {
+const { data: schemas, refresh: refreshSchemas } = await useClarityData('/api/schemas', {
   query: computed(() => ({ dataset: currentDataset.value }))
 })
 
@@ -41,7 +41,7 @@ async function fetchDocuments(append = false) {
       orderBy: 'updatedAt',
       orderDir: 'desc'
     })
-    const res = await $fetch<{ documents: Record<string, unknown>[], total: number, limit: number, offset: number }>(`/api/documents?${params}`)
+    const res = await useClarityRequest<{ documents: Record<string, unknown>[], total: number, limit: number, offset: number }>(`/api/documents?${params}`)
 
     if (append) {
       documents.value.push(...res.documents)
@@ -152,7 +152,7 @@ async function createType() {
     return
   }
   try {
-    await $fetch('/api/schemas', {
+    await useClarityRequest('/api/schemas', {
       method: 'POST',
       query: { dataset: currentDataset.value },
       body: [{
@@ -197,7 +197,7 @@ function documentActionItems(doc: Record<string, unknown>) {
 
 async function createDocument(typeName: string) {
   try {
-    const result = await $fetch(`/api/documents?dataset=${encodeURIComponent(currentDataset.value)}`, {
+    const result = await useClarityRequest(`/api/documents?dataset=${encodeURIComponent(currentDataset.value)}`, {
       method: 'POST',
       body: { _type: typeName }
     })
@@ -210,7 +210,7 @@ async function createDocument(typeName: string) {
 }
 
 async function putDocument(id: string, body: Record<string, unknown>) {
-  return $fetch<Record<string, unknown>>(`/api/documents/${id}?dataset=${encodeURIComponent(currentDataset.value)}`, {
+  return useClarityRequest<Record<string, unknown>>(`/api/documents/${id}?dataset=${encodeURIComponent(currentDataset.value)}`, {
     method: 'PUT',
     body
   })
@@ -294,7 +294,7 @@ function deleteDocument(id: string) {
     confirmLabel: 'Delete',
     confirmColor: 'error',
     onConfirm: async () => {
-      await $fetch(`/api/documents/${id}?dataset=${encodeURIComponent(currentDataset.value)}`, {
+      await useClarityRequest(`/api/documents/${id}?dataset=${encodeURIComponent(currentDataset.value)}`, {
         method: 'DELETE'
       })
       toast.add({ title: 'Document deleted', color: 'success' })
@@ -347,7 +347,7 @@ function openPreviewRevision(rev: Record<string, unknown>) {
 async function loadRevisions() {
   if (!selectedId.value) return
   try {
-    const res = await $fetch<{ revisions: Record<string, unknown>[] }>(`/api/documents/${selectedId.value}/revisions?dataset=${encodeURIComponent(currentDataset.value)}`)
+    const res = await useClarityRequest<{ revisions: Record<string, unknown>[] }>(`/api/documents/${selectedId.value}/revisions?dataset=${encodeURIComponent(currentDataset.value)}`)
     revisions.value = res.revisions
   } catch (e: unknown) {
     toast.add({ title: 'Error', description: (e as Error).message, color: 'error' })

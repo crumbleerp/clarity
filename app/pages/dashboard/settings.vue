@@ -66,9 +66,9 @@ async function onConfirmAction() {
   }
 }
 
-const { data: users, refresh: refreshUsers } = await useFetch('/api/users')
-const { data: accessTokens, refresh: refreshAccessTokens } = await useFetch('/api/access-tokens')
-const { data: allowedOrigins, refresh: refreshAllowedOrigins } = await useFetch('/api/allowed-origins')
+const { data: users, refresh: refreshUsers } = await useClarityData('/api/users')
+const { data: accessTokens, refresh: refreshAccessTokens } = await useClarityData('/api/access-tokens')
+const { data: allowedOrigins, refresh: refreshAllowedOrigins } = await useClarityData('/api/allowed-origins')
 
 const visibleSections = computed(() => [
   { id: 'import', label: 'Import' },
@@ -97,7 +97,7 @@ async function onImportSubmit() {
 
   importing.value = true
   try {
-    const result = await $fetch<{ jobId: string }>('/api/import/sanity', {
+    const result = await useClarityRequest<{ jobId: string }>('/api/import/sanity', {
       method: 'POST',
       body: importState
     })
@@ -129,13 +129,13 @@ function openEditUser(user: { id: string, username: string, role: string }) {
 async function saveUser(data: { id?: string, username: string, password: string, role: string }) {
   try {
     if (data.id) {
-      await $fetch(`/api/users/${data.id}`, {
+      await useClarityRequest(`/api/users/${data.id}`, {
         method: 'PUT',
         body: data
       })
       toast.add({ title: 'User updated', color: 'success' })
     } else {
-      await $fetch('/api/users', {
+      await useClarityRequest('/api/users', {
         method: 'POST',
         body: data
       })
@@ -149,7 +149,7 @@ async function saveUser(data: { id?: string, username: string, password: string,
 
 async function saveAccessToken(data: { name: string, role: string, expiresAt: string }) {
   try {
-    const result = await $fetch<{ token: string }>('/api/access-tokens', {
+    const result = await useClarityRequest<{ token: string }>('/api/access-tokens', {
       method: 'POST',
       body: {
         name: data.name,
@@ -172,7 +172,7 @@ function deleteAccessToken(id: string) {
     confirmLabel: 'Delete',
     confirmColor: 'error',
     onConfirm: async () => {
-      await $fetch(`/api/access-tokens/${id}`, { method: 'DELETE' })
+      await useClarityRequest(`/api/access-tokens/${id}`, { method: 'DELETE' })
       await refreshAccessTokens()
       toast.add({ title: 'Access token deleted', color: 'success' })
     }
@@ -187,7 +187,7 @@ function copyToken() {
 
 async function saveAllowedOrigin(origin: string) {
   try {
-    await $fetch('/api/allowed-origins', {
+    await useClarityRequest('/api/allowed-origins', {
       method: 'POST',
       body: { origin }
     })
@@ -205,7 +205,7 @@ function deleteAllowedOrigin(id: string) {
     confirmLabel: 'Delete',
     confirmColor: 'error',
     onConfirm: async () => {
-      await $fetch(`/api/allowed-origins/${id}`, { method: 'DELETE' })
+      await useClarityRequest(`/api/allowed-origins/${id}`, { method: 'DELETE' })
       await refreshAllowedOrigins()
       toast.add({ title: 'Origin deleted', color: 'success' })
     }
@@ -219,7 +219,7 @@ function truncateData() {
     confirmLabel: 'Truncate',
     confirmColor: 'error',
     onConfirm: async () => {
-      await $fetch('/api/admin/truncate', { method: 'POST' })
+      await useClarityRequest('/api/admin/truncate', { method: 'POST' })
       toast.add({ title: 'Data truncated', description: 'All documents and schemas removed', color: 'success' })
     }
   })
@@ -234,7 +234,7 @@ function regenerateAssetUrls() {
     confirmLabel: 'Regenerate',
     confirmColor: 'warning',
     onConfirm: async () => {
-      const result = await $fetch<{ jobId: string }>(`/api/admin/regenerate-urls?dataset=${encodeURIComponent(currentDataset.value)}`, { method: 'POST' })
+      const result = await useClarityRequest<{ jobId: string }>(`/api/admin/regenerate-urls?dataset=${encodeURIComponent(currentDataset.value)}`, { method: 'POST' })
       trackJob(result.jobId, 'regenerate-urls')
       toast.add({ title: 'URL regeneration started', description: `Job ${result.jobId}`, color: 'info' })
     }

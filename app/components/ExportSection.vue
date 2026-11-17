@@ -6,7 +6,7 @@ const exporting = ref(false)
 async function exportAll() {
   exporting.value = true
   try {
-    const data = await $fetch<{ result: unknown }>(`/v1/data/query/${currentDataset.value}?query=${encodeURIComponent('*')}`)
+    const data = await useClarityRequest<{ result: unknown }>(`/v1/data/query/${currentDataset.value}?query=${encodeURIComponent('*')}`)
 
     const blob = new Blob([JSON.stringify(data.result, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)

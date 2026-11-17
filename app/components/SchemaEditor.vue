@@ -102,7 +102,7 @@ function cancel() {
 
 async function save() {
   try {
-    await $fetch('/api/schemas', {
+    await useClarityRequest('/api/schemas', {
       method: 'POST',
       query: { dataset: props.dataset },
       body: [local.value]
@@ -118,7 +118,7 @@ async function confirmDelete() {
   if (!local.value.name) return
   deleting.value = true
   try {
-    await $fetch(`/api/schemas/${local.value.name}`, {
+    await useClarityRequest(`/api/schemas/${local.value.name}`, {
       method: 'DELETE',
       query: { dataset: props.dataset }
     })

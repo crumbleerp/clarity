@@ -7,7 +7,7 @@ const open = ref(false)
 const search = ref('')
 const selectedIndex = ref(0)
 
-const { data: results, status } = useFetch('/api/search', {
+const { data: results, status } = useClarityData('/api/search', {
   query: computed(() => ({
     dataset: currentDataset.value,
     q: search.value

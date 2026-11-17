@@ -7,7 +7,8 @@ import { verifyAccessToken } from './accessToken'
 const SESSION_CONFIG = {
   password: '',
   maxAge: 60 * 60 * 24 * 7,
-  cookie: { secure: !import.meta.dev }
+  name: 'clarity-session',
+  cookie: { secure: !import.meta.dev, path: process.env.NUXT_APP_BASE_URL || '/' }
 }
 
 export type UserRole = 'root' | 'admin' | 'moderator' | 'guest'

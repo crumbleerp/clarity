@@ -2,6 +2,8 @@ import { getAllowedOrigins } from '../services/allowedOrigins'
 
 export default defineEventHandler(async (event) => {
   const url = getRequestURL(event)
+  const base = useRuntimeConfig().app.baseURL.replace(/[/]$/, '')
+  if (base && url.pathname.startsWith(base + '/')) url.pathname = url.pathname.slice(base.length)
   if (!url.pathname.startsWith('/v1/data/')) {
     return
   }

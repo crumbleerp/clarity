@@ -1,4 +1,5 @@
 export default defineEventHandler((event) => {
+  const baseURL = useRuntimeConfig().app.baseURL.replace(/[/]$/, '')
   setHeader(event, 'content-type', 'text/html')
   return `<!DOCTYPE html>
 <html lang="en">
@@ -13,7 +14,7 @@ export default defineEventHandler((event) => {
   <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
   <script>
     SwaggerUIBundle({
-      url: '/api/openapi.json',
+      url: '${baseURL}/api/openapi.json',
       dom_id: '#swagger-ui',
       presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.presets.standalone]
     })

@@ -13,7 +13,7 @@ const search = ref((route.query.search as string) || '')
 const typeFilter = ref<'all' | 'image' | 'file'>((route.query.type as 'all' | 'image' | 'file') || 'all')
 const selectedId = ref<string>((route.query.id as string) || '')
 
-const { data, refresh, status } = await useFetch<MediaListResponse>('/api/media', {
+const { data, refresh, status } = await useClarityData<MediaListResponse>('/api/media', {
   query: computed(() => ({
     dataset: currentDataset.value,
     search: search.value,
@@ -91,7 +91,7 @@ function updateSearch() {
 async function saveAsset(payload: Partial<MediaAsset>) {
   if (!selectedId.value) return
   try {
-    await $fetch(`/api/media/${selectedId.value}?dataset=${encodeURIComponent(currentDataset.value)}`, {
+    await useClarityRequest(`/api/media/${selectedId.value}?dataset=${encodeURIComponent(currentDataset.value)}`, {
       method: 'PUT',
       body: payload
     })
@@ -111,7 +111,7 @@ function deleteAsset() {
     confirmLabel: 'Delete',
     confirmColor: 'error',
     onConfirm: async () => {
-      await $fetch(`/api/media/${selectedId.value}?dataset=${encodeURIComponent(currentDataset.value)}`, { method: 'DELETE' })
+      await useClarityRequest(`/api/media/${selectedId.value}?dataset=${encodeURIComponent(currentDataset.value)}`, { method: 'DELETE' })
       toast.add({ title: 'Asset deleted', color: 'success' })
       modalOpen.value = false
       await refresh()

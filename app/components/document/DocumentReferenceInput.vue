@@ -18,7 +18,7 @@ const activeDataset = computed(() => props.dataset || currentDataset.value)
 
 const refTypes = computed(() => props.to?.map(t => t.type) || [])
 
-const { data: allDocs, refresh } = useFetch('/api/documents', {
+const { data: allDocs, refresh } = useClarityData('/api/documents', {
   query: computed(() => ({ dataset: activeDataset.value }))
 })
 

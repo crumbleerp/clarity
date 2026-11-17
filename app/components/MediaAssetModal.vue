@@ -40,7 +40,7 @@ watch(() => props.asset, (asset) => {
   tags.value = Array.isArray(asset?.tags) ? asset.tags as string[] : []
 }, { immediate: true })
 
-const { data: tagDocs } = await useFetch<{ documents: Array<Record<string, unknown>> }>('/api/documents', {
+const { data: tagDocs } = await useClarityData<{ documents: Array<Record<string, unknown>> }>('/api/documents', {
   query: computed(() => ({
     dataset: currentDataset.value,
     type: '_clarity.file_tags',

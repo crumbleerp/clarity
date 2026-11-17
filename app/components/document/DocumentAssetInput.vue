@@ -43,7 +43,7 @@ async function resolveAsset() {
     return
   }
   try {
-    const doc = await $fetch<MediaAsset>(`/api/media/${ref}?dataset=${encodeURIComponent(props.dataset || 'production')}`)
+    const doc = await useClarityRequest<MediaAsset>(`/api/media/${ref}?dataset=${encodeURIComponent(props.dataset || 'production')}`)
     assetDoc.value = doc
   } catch {
     assetDoc.value = null
@@ -86,7 +86,7 @@ async function processFile(file: File) {
     formData.append('file', file)
 
     const tagsParam = props.tags?.length ? `&tags=${encodeURIComponent(props.tags.join(','))}` : ''
-    const uploadResult = await $fetch<{ files: Array<{ url: string, assetId: string, type: string }> }>(`/api/upload?dataset=${encodeURIComponent(props.dataset || 'production')}${tagsParam}`, {
+    const uploadResult = await useClarityRequest<{ files: Array<{ url: string, assetId: string, type: string }> }>(`/api/upload?dataset=${encodeURIComponent(props.dataset || 'production')}${tagsParam}`, {
       method: 'POST',
       body: formData
     })

@@ -475,3 +475,22 @@ Content-Type: application/json
 ## License
 
 [MIT](LICENSE)
+
+## Hosting under a subpath
+
+Set `NUXT_APP_BASE_URL` to the public application prefix (with a trailing slash).
+For example, to host the dashboard and API at `https://cv.example.com/admin/`:
+
+```bash
+NUXT_APP_BASE_URL=/admin/ pnpm build
+NUXT_APP_BASE_URL=/admin/ node .output/server/index.mjs
+```
+
+For Docker, set `NUXT_APP_BASE_URL=/admin/` in the container environment. Nuxt
+also supports changing this value at runtime. Forward the complete `/admin/`
+path to Clarity; do not strip the prefix in the reverse proxy. Dashboard links,
+API requests and session cookies use this prefix. With no variable set, Clarity
+continues to run at `/`.
+
+If using the Playground, set `NUXT_PUBLIC_API_BASE_URL` to the complete public
+URL, including the prefix, for example `https://cv.example.com/admin`.

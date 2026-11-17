@@ -1,5 +1,7 @@
 export default defineEventHandler(async (event) => {
   const url = getRequestURL(event)
+  const base = useRuntimeConfig().app.baseURL.replace(/[/]$/, '')
+  if (base && url.pathname.startsWith(base + '/')) url.pathname = url.pathname.slice(base.length)
 
   const publicPaths = ['/api/auth/login', '/api/auth/logout', '/v1/data/query']
   if (publicPaths.some(p => url.pathname === p || url.pathname.startsWith(p))) {

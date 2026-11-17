@@ -11,7 +11,7 @@ withDefaults(defineProps<{
 const toast = useToast()
 const currentDataset = useCurrentDataset()
 
-const { data: schemas, refresh } = await useFetch('/api/schemas', {
+const { data: schemas, refresh } = await useClarityData('/api/schemas', {
   query: computed(() => ({ dataset: currentDataset.value }))
 })
 
@@ -41,7 +41,7 @@ async function saveSchemas() {
   try {
     const parsed = JSON.parse(input.value)
     const arr = Array.isArray(parsed) ? parsed : [parsed]
-    await $fetch('/api/schemas', {
+    await useClarityRequest('/api/schemas', {
       method: 'POST',
       body: arr,
       query: { dataset: currentDataset.value }
@@ -62,7 +62,7 @@ function deleteSchema(name: string) {
     confirmLabel: 'Delete',
     confirmColor: 'error',
     onConfirm: async () => {
-      await $fetch(`/api/schemas/${name}`, {
+      await useClarityRequest(`/api/schemas/${name}`, {
         method: 'DELETE',
         query: { dataset: currentDataset.value }
       })

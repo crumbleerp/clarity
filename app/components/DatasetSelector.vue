@@ -15,7 +15,7 @@ const creating = ref(false)
 const creatingLoading = ref(false)
 const newName = ref('')
 
-const { data, refresh } = useFetch('/api/datasets')
+const { data, refresh } = useClarityData('/api/datasets')
 
 const datasets = computed(() => {
   const list = new Set(data.value?.datasets || [])
@@ -46,7 +46,7 @@ async function confirmCreate() {
 
   creatingLoading.value = true
   try {
-    await $fetch('/api/datasets', { method: 'POST', body: { name } })
+    await useClarityRequest('/api/datasets', { method: 'POST', body: { name } })
     await refresh()
     select(name)
   } finally {

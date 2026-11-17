@@ -19,7 +19,7 @@ const isOpen = computed({
   set: value => emit('update:open', value)
 })
 
-const { data, refresh, status } = await useFetch<MediaListResponse>('/api/media', {
+const { data, refresh, status } = await useClarityData<MediaListResponse>('/api/media', {
   query: computed(() => ({
     dataset: currentDataset.value,
     search: search.value,

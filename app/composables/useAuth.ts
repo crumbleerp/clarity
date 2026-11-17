@@ -4,7 +4,7 @@ export function useAuth() {
 
   async function fetchUser(headers?: Record<string, string>) {
     try {
-      const data = await $fetch('/api/auth/me', { headers })
+      const data = await useClarityRequest('/api/auth/me', { headers })
       user.value = data as { id: string, username: string, role: string }
     } catch {
       user.value = null
@@ -14,7 +14,7 @@ export function useAuth() {
   async function login(username: string, password: string) {
     loading.value = true
     try {
-      const data = await $fetch('/api/auth/login', {
+      const data = await useClarityRequest('/api/auth/login', {
         method: 'POST',
         body: { username, password }
       })
@@ -28,7 +28,7 @@ export function useAuth() {
   }
 
   async function logout() {
-    await $fetch('/api/auth/logout', { method: 'POST' })
+    await useClarityRequest('/api/auth/logout', { method: 'POST' })
     user.value = null
     await navigateTo('/login')
   }

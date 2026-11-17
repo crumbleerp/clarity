@@ -163,7 +163,7 @@ async function execute() {
       qs.set('params', JSON.stringify(parsedParams))
     }
 
-    const data = await $fetch<{ result: JsonValue, ms?: number }>(`${apiBaseUrl()}/v1/data/query/${encodeURIComponent(dataset.value)}?${qs.toString()}`)
+    const data = await useClarityRequest<{ result: JsonValue, ms?: number }>(`${apiBaseUrl()}/v1/data/query/${encodeURIComponent(dataset.value)}?${qs.toString()}`)
 
     responseTime.value = Math.round(performance.now() - start)
     result.value = data.result
