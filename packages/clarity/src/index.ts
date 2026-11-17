@@ -6,3 +6,5 @@ export * from './schema.js'
 export type * from './schema.js'
 
 export { groq } from './groq.js'
+
+export { generateSchemaTypes } from './schema-types.js'

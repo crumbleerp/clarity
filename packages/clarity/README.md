@@ -10,6 +10,31 @@ npm install @crumbleerp/clarity
 
 > For Nuxt 4 integration use [`@crumbleerp/clarity-nuxt`](https://www.npmjs.com/package/@crumbleerp/clarity-nuxt) instead.
 
+## Existing Nuxt integrations
+
+Version 0.1.9 restores the Nuxt entry point removed in 0.1.8. Existing
+applications can keep their configuration:
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@crumbleerp/clarity']
+})
+```
+
+```ts
+// clarity.config.ts
+import { defineClarityConfig } from '@crumbleerp/clarity/nuxt'
+
+export default defineClarityConfig({
+  endpoint: 'https://cms.example.com',
+  dataset: 'production'
+})
+```
+
+New Nuxt applications should use `@crumbleerp/clarity-nuxt`. The root
+`@crumbleerp/clarity` import continues to expose the framework-independent client.
+
 ## Quick Start
 
 ```ts

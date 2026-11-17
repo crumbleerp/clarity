@@ -1,6 +1,6 @@
 {
   "name": "@crumbleerp/clarity",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./nuxt": {
+      "types": "./dist/nuxt/index.d.ts",
+      "default": "./dist/nuxt/index.js"
     }
   },
   "files": ["dist"],
@@ -15,12 +19,30 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
-    "pub": "tsc && pnpm publish --access public"
+    "pub": "tsc && pnpm publish --access public",
+    "test": "pnpm build && node --test test/nuxt-compat.test.mjs"
   },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "nuxt": "^4.4.8",
+    "vue": "^3.5"
+  },
+  "dependencies": {
+    "@nuxt/kit": "^4.4.8"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.4.8",
+    "vue": "^3.5"
+  },
+  "peerDependenciesMeta": {
+    "nuxt": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
   }
 }
